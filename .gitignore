@@ -105,3 +105,4 @@ typings/
 # Buynance
 server/dist/*
 data.db
+build/contracts/*
