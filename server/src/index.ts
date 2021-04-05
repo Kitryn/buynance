@@ -30,8 +30,8 @@ async function main() {
     // const provider = new ethers.providers.JsonRpcProvider(RpcUrl.MAINNET)
     
     const chainData = new ChainData(RpcUrl.MAINNET)
-    chainData.registerNewFactory('Pancakeswap', mainnet_PancakeFactoryAddress)
-    await chainData.registerPairFromFactoryIndex(mainnet_PancakeFactoryAddress, 0)
+    chainData.loadAllFactories()
+    await chainData.sync(mainnet_PancakeFactoryAddress)
 }
 
 main()

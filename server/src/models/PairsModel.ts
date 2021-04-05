@@ -18,7 +18,7 @@ export class PairsModel {
             contract_address STRING UNIQUE NOT NULL)')
         
         const createPairsTable = this.db.prepare('CREATE TABLE IF NOT EXISTS pairs(\
-            pair_index INTEGER,\
+            pair_index INTEGER NOT NULL,\
             decimals INTEGER NOT NULL,\
             token0_address STRING NOT NULL,\
             token1_address STRING NOT NULL,\
@@ -125,7 +125,10 @@ export class PairsModel {
         return result
     }
 
-    getPairAddressList() {
-        const query = this.db.prepare('SELECT contract_address FROM pairs')
+    getPairIndexAddressList(factoryAddress: string) {
+        const key = factoryAddress.toLowerCase()
+        const query = this.db.prepare('SELECT contract_address, pair_index FROM pairs WHERE factory_address=:address')
+        const result = query.all({address: key})
+        return result
     }
 }

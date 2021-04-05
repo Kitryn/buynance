@@ -9,9 +9,9 @@ export class FactoryAccount extends ContractAccount {
         super(address, provider, abi)
     }
 
-    async getTotalPairCount(): Promise<BigNumber> {
+    async getTotalPairCount(): Promise<number> {
         const result = await this.contract.allPairsLength()
-        return result
+        return result.toNumber()
     }
 
     async getPairFromIndex(index: number): Promise<string> {
