@@ -103,9 +103,10 @@ export class ChainData {
             return
         }
 
-        const concurrency = 100
+        const concurrency = 10
         const iterator = makeIterator()
         let count = 0
+        let countErrors = 0
         const doWork = async () => {
             for (const id of iterator) {
                 try {
@@ -113,7 +114,13 @@ export class ChainData {
                     count++
                     if (count % 100 === 0) console.log(`${count}/${pairIndexes.length}`)
                 } catch (err) {
+                    console.error(`Error while fetching pair ID ${id}`)
                     console.error(err)
+                    countErrors++
+                    if (countErrors >= 100) {
+                        console.error('Over 100 errors, breaking')
+                        break
+                    }
                 }
             }
         }
