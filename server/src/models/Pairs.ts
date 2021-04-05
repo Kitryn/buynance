@@ -1,0 +1,1 @@
+import { DBPATH } from './ModelConfig'
