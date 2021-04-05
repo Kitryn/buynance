@@ -19,15 +19,15 @@ export class Pairs {
         
         const createPairsTable = this.db.prepare('CREATE TABLE IF NOT EXISTS pairs(\
             decimals INTEGER NOT NULL,\
-            token0 STRING NOT NULL,\
-            token1 STRING NOT NULL,\
+            token0_address STRING NOT NULL,\
+            token1_address STRING NOT NULL,\
             factory_address STRING NOT NULL,\
             contract_address STRING UNIQUE NOT NULL,\
             FOREIGN KEY (factory_address)\
                 REFERENCES factories (contract_address),\
-            FOREIGN KEY (token0)\
+            FOREIGN KEY (token0_address)\
                 REFERENCES tokens (contract_address),\
-            FOREIGN KEY (token1)\
+            FOREIGN KEY (token1_address)\
                 REFERENCES tokens (contract_address))')
         
         const initialiseDb = this.db.transaction(() => {
