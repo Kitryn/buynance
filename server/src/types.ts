@@ -6,7 +6,8 @@ export enum ContractType {
 
 export enum ABI {
     factory = require('./ABI/factory.json'),
-    pair = require('./ABI/pair.json')
+    pair = require('./ABI/pair.json'),
+    bep20 = require('./ABI/bep20.json')
 }
 
 export enum RpcUrl {
@@ -20,5 +21,12 @@ export interface Pair {
     token0_address: string
     token1_address: string
     decimals: number
+    contract_address: string
+}
+
+export interface Token {
+    decimals: number,
+    name: string,
+    symbol: string,
     contract_address: string
 }
