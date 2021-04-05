@@ -10,7 +10,7 @@ npm install
 
 ### Server
 
-Create a ```.env``` file in project root. 
+Development: Create a ```.env``` file in project root. 
 
 ## Project structure
 
