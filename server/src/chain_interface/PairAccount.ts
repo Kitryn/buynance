@@ -3,7 +3,7 @@ import { ContractAccount } from './ContractAccount'
 import { ABI, Pair } from '../types'
 
 interface pair_ContractResponse {
-    type: 'decimals' | 'token0address' | 'token1address'
+    type: 'decimals' | 'token0address' | 'token1address' | 'factory'
     result: any
 }
 
@@ -28,17 +28,24 @@ export class PairAccount extends ContractAccount {
         return {type: 'token1address', result}
     }
 
+    private async _getFactory(): Promise<pair_ContractResponse> {
+        const result = await this.contract.factory()
+        return {type: 'factory', result}
+    }
+
     async get(): Promise<Pair> { 
         const work: Promise<pair_ContractResponse>[] = []
         work.push(this._getDecimals())
         work.push(this._getToken0Address())
         work.push(this._getToken1Address())
+        work.push(this._getFactory())
 
         const result: pair_ContractResponse[] = await Promise.all(work)  // if one fails all fails -- TODO -- harden this
 
         let decimals
         let token0_address
         let token1_address
+        let factory_address
 
         for (const res of result) {
             switch(res.type) {
@@ -51,6 +58,9 @@ export class PairAccount extends ContractAccount {
                 case 'token1address':
                     token1_address = res.result    
                     break
+                case 'factory':
+                    factory_address = res.result    
+                    break
                 default:
                     throw new Error('Invalid result when fetching pairs!')
             }
@@ -60,6 +70,7 @@ export class PairAccount extends ContractAccount {
             token0_address,
             token1_address,
             decimals,
+            factory_address,
             contract_address: this.address
         }
 
