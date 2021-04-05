@@ -22,6 +22,7 @@ export class Pairs {
             token0 STRING NOT NULL,\
             token1 STRING NOT NULL,\
             factory_address STRING NOT NULL,\
+            contract_address STRING UNIQUE NOT NULL,\
             FOREIGN KEY (factory_address)\
                 REFERENCES factories (contract_address),\
             FOREIGN KEY (token0)\
