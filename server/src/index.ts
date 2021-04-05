@@ -6,6 +6,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 const dbConn = require('./models/DbConfig')()
 import { PairsModel } from './models/PairsModel'
+import { SqliteError } from 'better-sqlite3'
 import { ChainData } from './chain_interface/ChainData'
 import { PairAccount } from './chain_interface/PairAccount'
 import { TokenAccount } from './chain_interface/TokenAccount'
@@ -23,22 +24,14 @@ const mainnet_BAKE = '0xE02dF9e3e622DeBdD69fb838bB799E3F168902c5'
 
 
 async function main() {
-    const db = new PairsModel(dbConn)
-    db.addFactory('Pancakeswap', mainnet_PancakeFactoryAddress)
+    // const db = new PairsModel(dbConn)
+    // db.addFactory('Pancakeswap', mainnet_PancakeFactoryAddress)
     // Todo -- memoize get Token
-    const provider = new ethers.providers.JsonRpcProvider(RpcUrl.MAINNET)
-    const BUSDToken = new TokenAccount(mainnet_BUSD, provider)
-    const BUSD = await BUSDToken.get()
-    db.addToken(BUSD)
-
-    const BAKEToken = new TokenAccount(mainnet_BAKE, provider)
-    const BAKE = await BAKEToken.get()
-    db.addToken(BAKE)
-
-    const BAKE_BUSD_pair = new PairAccount(mainnet_BAKE_BUSD, provider)
-    const pairInfo = await BAKE_BUSD_pair.get()
-    console.log(pairInfo)
-    db.addPair(pairInfo)
+    // const provider = new ethers.providers.JsonRpcProvider(RpcUrl.MAINNET)
+    
+    const chainData = new ChainData(RpcUrl.MAINNET)
+    chainData.registerNewFactory('Pancakeswap', mainnet_PancakeFactoryAddress)
+    await chainData.registerPairFromFactoryIndex(mainnet_PancakeFactoryAddress, 0)
 }
 
 main()

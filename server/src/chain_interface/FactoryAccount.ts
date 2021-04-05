@@ -14,7 +14,8 @@ export class FactoryAccount extends ContractAccount {
         return result
     }
 
-    async getPairFromIndex(index: number) {
-
+    async getPairFromIndex(index: number): Promise<string> {
+        const result = await this.contract.allPairs(index)
+        return result
     }
 }

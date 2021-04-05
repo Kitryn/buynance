@@ -18,6 +18,7 @@ export class PairsModel {
             contract_address STRING UNIQUE NOT NULL)')
         
         const createPairsTable = this.db.prepare('CREATE TABLE IF NOT EXISTS pairs(\
+            pair_index INTEGER,\
             decimals INTEGER NOT NULL,\
             token0_address STRING NOT NULL,\
             token1_address STRING NOT NULL,\
@@ -49,6 +50,18 @@ export class PairsModel {
         })  // todo: inspect result to check success?
     }
 
+    getFactory(address: string) {
+        const query = this.db.prepare('SELECT * FROM factories WHERE contract_address=:address')
+        const result = query.get({address: address.toLowerCase()})
+        return result
+    }
+
+    getFactories() {
+        const query = this.db.prepare('SELECT * FROM factories')
+        const result = query.all()
+        return result
+    }
+
     addToken(tokenInfo: Token) {
         const query = this.db.prepare('INSERT OR IGNORE INTO tokens(\
                 decimals,\
@@ -68,12 +81,14 @@ export class PairsModel {
 
     addPair(pairInfo: Pair) {
         const query = this.db.prepare('INSERT INTO pairs(\
+                pair_index,\
                 decimals,\
                 token0_address,\
                 token1_address,\
                 factory_address,\
                 contract_address) \
             VALUES(\
+                :pair_index,\
                 :decimals,\
                 :token0_address,\
                 :token1_address,\
@@ -85,6 +100,32 @@ export class PairsModel {
         input.token0_address = input.token0_address.toLowerCase()
         input.token1_address = input.token1_address.toLowerCase()
 
+        if (input.pair_index == null) input.pair_index = null
+
         const result = query.run(input)  // todo: inspect result to check success?
+    }
+
+    getTokenFromAddress(address: string) {
+        const key = address.toLowerCase()
+        const query = this.db.prepare('SELECT * FROM tokens WHERE contract_address=:address')
+        const result = query.get({address: key})
+        return result
+    }
+
+    getTokenAddressList() {
+        const query = this.db.prepare('SELECT contract_address FROM tokens')
+        const result = query.pluck().all()
+        return result
+    }
+
+    getPairFromAddress(address: string) {
+        const key = address.toLowerCase()
+        const query = this.db.prepare('SELECT * FROM pairs WHERE contract_address=:address')
+        const result = query.get({address: key})
+        return result
+    }
+
+    getPairAddressList() {
+        const query = this.db.prepare('SELECT contract_address FROM pairs')
     }
 }

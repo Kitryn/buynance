@@ -23,11 +23,17 @@ export interface Pair {
     decimals: number
     contract_address: string
     factory_address: string
+    pair_index?: number | null
 }
 
 export interface Token {
     decimals: number,
     name: string,
     symbol: string,
+    contract_address: string
+}
+
+export interface Factory {
+    name: string,
     contract_address: string
 }
