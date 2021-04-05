@@ -1,6 +1,6 @@
 import { BigNumber, ethers } from 'ethers'
 import { ContractAccount } from './ContractAccount'
-import { ABI } from './types'
+import { ABI } from '../types'
 
 
 export class FactoryAccount extends ContractAccount {

@@ -1,6 +1,6 @@
 import { BigNumber, ethers } from 'ethers'
 import { ContractAccount } from './ContractAccount'
-import { ABI, Pair } from './types'
+import { ABI, Pair } from '../types'
 
 interface ContractResponse {
     type: 'decimals' | 'token0address' | 'token1address'

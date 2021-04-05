@@ -5,8 +5,8 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 import { Pairs } from './models/Pairs'
-import { ChainData } from './ChainData'
-import { PairAccount } from './PairAccount'
+import { ChainData } from './chain_interface/ChainData'
+import { PairAccount } from './chain_interface/PairAccount'
 import { RpcUrl } from './types'
 import { ethers } from 'ethers'
 
