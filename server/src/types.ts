@@ -20,5 +20,5 @@ export interface Pair {
     token0_address: string
     token1_address: string
     decimals: number
-
+    contract_address: string
 }

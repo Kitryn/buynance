@@ -20,7 +20,7 @@ const mainnet_BAKE_BUSD = '0xE2D1B285d83efb935134F644d00FB7c943e84B5B'
 async function main() {
     const provider = new ethers.providers.JsonRpcProvider(RpcUrl.MAINNET)
     const pair = new PairAccount(mainnet_BAKE_BUSD, provider)
-    console.log(typeof(await pair.getDecimals()))
+    console.log(await pair.getPair())
 }
 
 main()
