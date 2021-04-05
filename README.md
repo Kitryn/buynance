@@ -10,7 +10,15 @@ npm install
 
 ### Server
 
-Development: Create a ```.env``` file in project root. 
+Development: Create a ```.env``` file in project root. App expects the following environment variables:
+
+```
+NODE_ENV = 'development' | 'production'
+DBPATH
+DBNAME
+```
+
+Run with ```npm run start:dev```
 
 ## Project structure
 
