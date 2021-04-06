@@ -35,5 +35,6 @@ export interface Token {
 
 export interface Factory {
     name: string,
-    contract_address: string
+    contract_address: string,
+    fee: number
 }

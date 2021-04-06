@@ -22,6 +22,8 @@ const mainnet_BAKE_BUSD = '0xE2D1B285d83efb935134F644d00FB7c943e84B5B'
 const mainnet_BUSD = '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56'
 const mainnet_BAKE = '0xE02dF9e3e622DeBdD69fb838bB799E3F168902c5'
 
+const testnet_PancakeFactoryAddress = '0x6725F303b657a9451d8BA641348b6761A6CC7a17'
+
 
 async function main() {
     // const db = new PairsModel(dbConn)
@@ -29,9 +31,10 @@ async function main() {
     // Todo -- memoize get Token
     // const provider = new ethers.providers.JsonRpcProvider(RpcUrl.MAINNET)
     
-    const chainData = new ChainData(RpcUrl.MAINNET)
-    chainData.loadAllFactories()
-    await chainData.sync(mainnet_PancakeFactoryAddress)
+    const chainData = new ChainData(RpcUrl.TESTNET)
+    // chainData.loadAllFactories()
+    chainData.registerNewFactory('Pancakeswap Testnet', testnet_PancakeFactoryAddress, 0.002)
+    await chainData.sync(testnet_PancakeFactoryAddress)
 }
 
 main()

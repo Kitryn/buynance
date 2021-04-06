@@ -9,7 +9,8 @@ export class PairsModel {
         this.db = db
         const createFactoryTable = this.db.prepare('CREATE TABLE IF NOT EXISTS factories(\
             name STRING UNIQUE,\
-            contract_address STRING UNIQUE NOT NULL)')
+            contract_address STRING UNIQUE NOT NULL,\
+            fee REAL NOT NULL)')
         
         const createTokenTable = this.db.prepare('CREATE TABLE IF NOT EXISTS tokens(\
             decimals INTEGER NOT NULL,\
@@ -39,14 +40,15 @@ export class PairsModel {
         initialiseDb()
     }
 
-    addFactory(name: string, address: string) {
-        const query = this.db.prepare('INSERT OR IGNORE INTO factories(name, contract_address) VALUES (\
+    addFactory(name: string, address: string, fee: number) {
+        const query = this.db.prepare('INSERT OR IGNORE INTO factories(name, contract_address, fee) VALUES (\
             :name,\
-            :contract_address) \
-            ')
+            :contract_address,\
+            :fee)')
         const result = query.run({
             name: name,
-            contract_address: address.toLowerCase()
+            contract_address: address.toLowerCase(),
+            fee: fee
         })  // todo: inspect result to check success?
     }
 
