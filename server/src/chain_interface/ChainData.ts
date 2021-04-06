@@ -32,14 +32,14 @@ export class ChainData {
     loadAllFactories(): Factory[] {
         const factoryList: Factory[] = this.db.getFactories()
         for (const factoryInfo of factoryList) {
-            this.registerNewFactory(factoryInfo.name, factoryInfo.contract_address, factoryInfo.fee)
+            this.registerNewFactory(factoryInfo.name, factoryInfo.contract_address, factoryInfo.router_address, factoryInfo.fee)
         }
         return factoryList
     }
 
-    registerNewFactory(name: string, address: string, fee: number) {
+    registerNewFactory(name: string, address: string, router_address: string, fee: number) {
         const key = address.toLowerCase()
-        this.db.addFactory(name, key, fee)  // ignores if address already exists
+        this.db.addFactory(name, key, router_address, fee)  // ignores if address already exists
 
         const factory = new FactoryAccount(address, this.provider)
         this._factories.set(key, factory)

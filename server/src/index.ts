@@ -18,6 +18,7 @@ import { ethers } from 'ethers'
 // const db = require('./models/DbConfig')()
 // const pairsDb = new Pairs(db)
 const mainnet_PancakeFactoryAddress = '0xBCfCcbde45cE874adCB698cC183deBcF17952812'
+const mainnet_PancakeRouterAddress = '0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F'
 const mainnet_BAKE_BUSD = '0xE2D1B285d83efb935134F644d00FB7c943e84B5B'
 const mainnet_BUSD = '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56'
 const mainnet_BAKE = '0xE02dF9e3e622DeBdD69fb838bB799E3F168902c5'
@@ -33,7 +34,7 @@ async function main() {
     
     const chainData = new ChainData(RPC_URL)
     chainData.loadAllFactories()
-    // chainData.registerNewFactory('Pancakeswap Testnet', mainnet_PancakeFactoryAddress, 0.002)
+    chainData.registerNewFactory('Pancakeswap', mainnet_PancakeFactoryAddress, mainnet_PancakeRouterAddress, 0.002)
     await chainData.sync(mainnet_PancakeFactoryAddress)
 }
 
