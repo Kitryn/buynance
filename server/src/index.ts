@@ -28,10 +28,10 @@ const testnet_PancakeFactoryAddress = '0x6725F303b657a9451d8BA641348b6761A6CC7a1
 async function main() {
     // const db = new PairsModel(dbConn)
     // db.addFactory('Pancakeswap', mainnet_PancakeFactoryAddress)
-    // Todo -- memoize get Token
     // const provider = new ethers.providers.JsonRpcProvider(RpcUrl.MAINNET)
+    const RPC_URL = process.env.NETWORK === 'MAINNET' ? process.env.RPC_URL : process.env.RPC_URL_TESTNET
     
-    const chainData = new ChainData(process.env.RPC_URL)
+    const chainData = new ChainData(RPC_URL)
     chainData.loadAllFactories()
     // chainData.registerNewFactory('Pancakeswap Testnet', mainnet_PancakeFactoryAddress, 0.002)
     await chainData.sync(mainnet_PancakeFactoryAddress)
