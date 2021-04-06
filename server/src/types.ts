@@ -10,11 +10,6 @@ export enum ABI {
     bep20 = require('./ABI/bep20.json')
 }
 
-export enum RpcUrl {
-    MAINNET = 'https://bsc-dataseed.binance.org/',
-    TESTNET = 'https://data-seed-prebsc-2-s1.binance.org:8545/'
-}
-
 export interface Pair {
     token0_symbol?: string
     token1_symbol?: string

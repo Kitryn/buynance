@@ -4,6 +4,7 @@ declare global {
             NODE_ENV: 'development' | 'production'
             DBPATH: string
             DBNAME: string
+            RPC_URL: string
         }
     }
 }

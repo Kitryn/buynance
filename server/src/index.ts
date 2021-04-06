@@ -4,13 +4,13 @@ if (process.env.NODE_ENV !== 'production') {
     require('dotenv').config()
 }
 
+
 const dbConn = require('./models/DbConfig')()
 import { PairsModel } from './models/PairsModel'
 import { SqliteError } from 'better-sqlite3'
 import { ChainData } from './chain_interface/ChainData'
 import { PairAccount } from './chain_interface/PairAccount'
 import { TokenAccount } from './chain_interface/TokenAccount'
-import { RpcUrl } from './types'
 import { ethers } from 'ethers'
 
 
@@ -31,10 +31,10 @@ async function main() {
     // Todo -- memoize get Token
     // const provider = new ethers.providers.JsonRpcProvider(RpcUrl.MAINNET)
     
-    const chainData = new ChainData(RpcUrl.TESTNET)
-    // chainData.loadAllFactories()
-    chainData.registerNewFactory('Pancakeswap Testnet', testnet_PancakeFactoryAddress, 0.002)
-    await chainData.sync(testnet_PancakeFactoryAddress)
+    const chainData = new ChainData(process.env.RPC_URL)
+    chainData.loadAllFactories()
+    // chainData.registerNewFactory('Pancakeswap Testnet', mainnet_PancakeFactoryAddress, 0.002)
+    await chainData.sync(mainnet_PancakeFactoryAddress)
 }
 
 main()
