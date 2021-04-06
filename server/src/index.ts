@@ -27,17 +27,12 @@ async function main() {
     const chainData = new ChainData(RPC_URL)
     chainData.loadAllFactories()
 
-    let Pancakeswap_address: string = ''
     // load factories from hardcoded factories since if it already exists, nothing happens
     for (const factoryKey in BaseFactories) {
         const factoryInfo: Factory = BaseFactories[factoryKey]
         chainData.registerNewFactory(factoryInfo.name, factoryInfo.contract_address, factoryInfo.router_address, factoryInfo.fee)
-        
-        // Usage for test purposes
-        if (factoryInfo.name === 'Pancakeswap') Pancakeswap_address = factoryInfo.contract_address
     }
-    if (Pancakeswap_address === '') throw new Error('Pancakeswap address not found')
-    await chainData.sync('0x1DaeD74ed1dD7C9Dabbe51361ac90A69d851234D')
+    await chainData.sync('0x5240870Cc7A4E28eE7A79cf77d0dF69957B92da2')
 }
 
 main()
