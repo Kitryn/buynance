@@ -1,5 +1,4 @@
 import Database from 'better-sqlite3'
-import path from 'path'
 import { Pair, Token } from '../types'
 
 export class PairsModel {
