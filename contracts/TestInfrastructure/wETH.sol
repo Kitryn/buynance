@@ -5,7 +5,7 @@ pragma solidity ^0.8.3;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 
-// NOT CANONICAL! DO NOT DEPLOY ON MAINNET
+// NOT CANONICAL! DO NOT DEPLOY ON MAINNE
 contract WETH is ERC20 {
     event Deposit(address indexed dst, uint wad);
     event Withdrawal(address indexed src, uint wad);
