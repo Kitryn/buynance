@@ -13,7 +13,16 @@ task('accounts', 'Prints the list of accounts', async (args, hre) => {
 })
 
 const config: HardhatUserConfig = {
-    solidity: '0.8.3'
+    solidity: {
+        compilers: [
+            {
+                version: '0.8.3'
+            },
+            {
+                version: '0.5.16'
+            }
+        ]
+    }
 }
 
 export default config
