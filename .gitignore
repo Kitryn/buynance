@@ -107,3 +107,5 @@ server/dist/*
 data.db
 *.db
 build/contracts/*
+artifacts/*
+cache/*
