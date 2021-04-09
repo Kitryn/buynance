@@ -31,9 +31,6 @@ const config: HardhatUserConfig = {
                 }
             }
         ],
-    },
-    mocha: {
-        require: './test/hooks'
     }
 }
 
