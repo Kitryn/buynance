@@ -15,6 +15,8 @@ let Router1: ContractFactory
 let Router1Instance: Contract
 let Pair1: ContractFactory
 let Pair1Instance: Contract
+let UniswapV2Library: ContractFactory
+let UniswapV2LibraryInstance: Contract
 
 before(async () => {
     accounts = await ethers.getSigners()
@@ -23,7 +25,7 @@ before(async () => {
 
 
 describe('WETH', () => {
-    beforeEach(async () => {
+    before(async () => {
         WETH = await ethers.getContractFactory('WETH')
         WETHToken = await WETH.deploy()
     })
@@ -46,7 +48,7 @@ describe('WETH', () => {
 })
 
 describe('ILM', () => {
-    beforeEach(async () => {
+    before(async () => {
         ILM = await ethers.getContractFactory('ILMoney')
         ILMToken = await ILM.deploy()
     })
@@ -72,10 +74,20 @@ describe('ILM', () => {
     })
 })
 
+describe('Libraries', () => {
+    before(async() => {
+        UniswapV2Library = await ethers.getContractFactory('UniswapV2Library')
+        UniswapV2LibraryInstance = await UniswapV2Library.deploy()
+    })
 
+    it('Should exist at an address', async () => {
+        const address = UniswapV2LibraryInstance.address
+        expect(address).to.be.ok
+    })
+})
 
 describe('Factory', () => {
-    beforeEach(async () => {
+    before(async () => {
         Factory1 = await ethers.getContractFactory('Factory1')
         Factory1Instance = await Factory1.deploy(await owner.getAddress())
     })
@@ -112,7 +124,7 @@ describe('Pairs', () => {
 })
 
 describe('Router', () => {
-    beforeEach(async () => {
+    before(async () => {
         Router1 = await ethers.getContractFactory('Router1')
         Router1Instance = await Router1.deploy(Factory1Instance.address, WETHToken.address)
     })
@@ -120,5 +132,38 @@ describe('Router', () => {
     it('Should register factory and weth address', async () => {
         expect(await Router1Instance.factory()).to.equal(Factory1Instance.address)
         expect(await Router1Instance.WETH()).to.equal(WETHToken.address)
+    })
+
+    it('Should approve Router to spend Owner\'s WETH', async () => {
+        const response: ContractTransaction = await WETHToken.approve(Router1Instance.address, ethers.BigNumber.from(2).pow(256).sub(1))
+        const result: ContractReceipt = await response.wait()
+        const events: any = result.events?.filter(elem => {return elem.event === 'Approval'})
+        const event = events[0]
+        expect(event).to.be.ok
+        expect(await WETHToken.allowance(await owner.getAddress(), Router1Instance.address)).to.equal(ethers.BigNumber.from(2).pow(256).sub(1))
+    })
+
+    it('Should approve Router to spend Owner\'s ILMToken', async () => {
+        const response: ContractTransaction = await ILMToken.approve(Router1Instance.address, ethers.BigNumber.from(2).pow(256).sub(1))
+        const result: ContractReceipt = await response.wait()
+        const events: any = result.events?.filter(elem => {return elem.event === 'Approval'})
+        const event = events[0]
+        expect(event).to.be.ok
+        expect(await ILMToken.allowance(await owner.getAddress(), Router1Instance.address)).to.equal(ethers.BigNumber.from(2).pow(256).sub(1))
+    })
+
+    it('Should add liquidity 1:1', async () => {
+        expect(await Router1Instance.factory()).to.equal(Factory1Instance.address)
+        
+        const response: ContractTransaction = await Router1Instance.addLiquidity(
+            WETHToken.address, 
+            ILMToken.address,
+            ethers.utils.parseEther('1'),
+            ethers.utils.parseEther('1'),
+            ethers.utils.parseEther('1'),
+            ethers.utils.parseEther('1'),
+            await owner.getAddress(),
+            ethers.BigNumber.from(Math.floor(Date.now() / 1000 + 10000)))
+        console.log(response)
     })
 })
