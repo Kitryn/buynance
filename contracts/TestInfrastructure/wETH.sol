@@ -11,7 +11,7 @@ contract WETH is ERC20 {
     event Withdrawal(address indexed src, uint wad);
 
     constructor() ERC20("Wrapped Ether", "WETH") {
-        _mint(msg.sender, 10000 * 10 ** decimals());
+        _mint(msg.sender, 1005000 * 10 ** decimals());
     }
 
     receive() external payable {
