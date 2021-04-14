@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "test:util": "mocha --require ts-node/register './test/helper/test.ts'",
     "build": "tsc"
   },
   "author": "",

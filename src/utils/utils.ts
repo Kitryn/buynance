@@ -58,22 +58,49 @@ export function executionPrice(
     return numerator.divUnsafe(denominator)
 }
 
-export function findMaxBuy(
-    reserve0In: BigNumber,
-    reserve0Out: BigNumber,
-    fee0: number,
-    reserve1In: BigNumber,
-    reserve1Out: BigNumber,
-    fee1: number
+// export function findMaxBuy(
+//     reserve0In: BigNumber,
+//     reserve0Out: BigNumber,
+//     fee0: number,
+//     reserve1In: BigNumber,
+//     reserve1Out: BigNumber,
+//     fee1: number
+// ) {
+//     // TODO -- REFACTOR TO USE UNISWAP SDK TOKENAMOUNTS??
+
+//     const _fee0 = FixedNumber.from(1-fee0)
+//     const _fee1 = FixedNumber.from(1-fee1)
+//     const reserve0x = FixedNumber.from(reserve0In)
+//     const reserve0y = FixedNumber.from(reserve0Out)
+//     const reserve1x = FixedNumber.from(reserve1In)
+//     const reserve1y = FixedNumber.from(reserve1Out)
+
+//     // (sqrt(fee2)sqrt(r2x)sqrt(r2y)sqrt(r1x)sqrt(r1y)) / (sqrt(fee1)(fee2*r1y*r2y)) - (r2y*r1x) / (fee1(fee2*r1y+r2y))
+// }
+
+export function tradeDirection (
+    reserveA0 : BigNumber,
+    reserveA1 : BigNumber,
+    reserveB0 : BigNumber,
+    reserveB1 : BigNumber
 ) {
-    // TODO -- REFACTOR TO USE UNISWAP SDK TOKENAMOUNTS??
-
-    const _fee0 = FixedNumber.from(1-fee0)
-    const _fee1 = FixedNumber.from(1-fee1)
-    const reserve0x = FixedNumber.from(reserve0In)
-    const reserve0y = FixedNumber.from(reserve0Out)
-    const reserve1x = FixedNumber.from(reserve1In)
-    const reserve1y = FixedNumber.from(reserve1Out)
-
-    // (sqrt(fee2)sqrt(r2x)sqrt(r2y)sqrt(r1x)sqrt(r1y)) / (sqrt(fee1)(fee2*r1y*r2y)) - (r2y*r1x) / (fee1(fee2*r1y+r2y))
+    // Price if sell A0 to get A1 ==> A1/A0
+    // BigNumber doesn't support decimals
+    const precision = BigNumber.from('10000')  // Will be able to convert to ratio with up to 5 SF
+    const A_ratio_n = reserveA1.mul(precision).div(reserveA0)
+    const A_ratio = A_ratio_n.toNumber() / precision.toNumber()
+    
+    const B_ratio_n = reserveB1.mul(precision).div(reserveB0)
+    const B_ratio = B_ratio_n.toNumber() / precision.toNumber()
+    // Assume we're always starting on exchange A. 
+    // If B_ratio < A_ratio, we should go A0->A1->B1->B0
+    // If A_ratio < B_ratio, we should go from A1->A0->B0->B1
+    // Convention -> consider 0->1 as forward (true) and 1->0 as backward (false)
+    if (B_ratio < A_ratio) {
+        return true
+    } else if (B_ratio > A_ratio) {
+        return false
+    } else {
+        throw new Error('Reserves ratio is equal between exchanges!')
+    }
 }
