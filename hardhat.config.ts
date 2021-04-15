@@ -30,7 +30,7 @@ const config: HardhatUserConfig = {
                     }
                 }
             }
-        ],
+        ]
     }
 }
 

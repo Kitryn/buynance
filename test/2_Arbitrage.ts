@@ -22,11 +22,11 @@ let Pair1: ContractFactory
 let Pair1Instance: Contract
 let Pair2Instance: Contract
 
-before(async () => {
+async function deployInfrastructure() {
     accounts = await ethers.getSigners()
     owner = accounts[0]
     chainId = await owner.getChainId()
-    
+
     // Deploy all testing infrastructure first
     WETH = await ethers.getContractFactory('WETH')
     WETHToken = await WETH.deploy()
@@ -67,9 +67,18 @@ before(async () => {
 
     Router2 = await ethers.getContractFactory('Router2')
     Router2Instance = await Router2.deploy(Factory2Instance.address, WETHToken.address)
+}
+
+
+
+before(async () => {
+    await deployInfrastructure()
 })
 
 describe('Arbitrage Contract', () => {
-    it('Should do something', () => {
+    it('Should deploy', async () => {
+        const Arbitrage: ContractFactory = await ethers.getContractFactory('Arbitrage')
+        const ArbitrageInstance: Contract = await Arbitrage.deploy(Factory1Instance.address, Router1Instance.address)
+        expect(ArbitrageInstance.address).to.be.ok
     })
 })

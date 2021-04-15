@@ -28,7 +28,7 @@
     "@openzeppelin/contracts": "^4.0.0",
     "@uniswap/sdk": "^3.0.3",
     "@uniswap/v2-core": "^1.0.1",
-    "@uniswap/v2-periphery": "^1.1.0-beta.0",
+    "@uniswap/v2-periphery": "git+https://github.com/Uniswap/uniswap-v2-periphery.git",
     "better-sqlite3": "^7.1.4",
     "ethers": "^5.1.0"
   }
