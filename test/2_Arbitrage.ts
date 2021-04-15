@@ -223,8 +223,8 @@ describe('Arbitrage Contract', () => {
             console.log(`Exchange 2: reserve0: ${ethers.utils.formatEther(reservesF2._reserve0)} | reserve1: ${ethers.utils.formatEther(reservesF2._reserve1)}`)
             
 
-            const WETHBal_before = await WETHToken.balanceOf(ArbitrageInstance.address)
-            const ILMBal_before = await ILMToken.balanceOf(ArbitrageInstance.address)
+            const WETHBal_before: BigNumber = await WETHToken.balanceOf(ArbitrageInstance.address)
+            const ILMBal_before: BigNumber = await ILMToken.balanceOf(ArbitrageInstance.address)
 
             console.log(`Initial bal: WETH: ${ethers.utils.formatEther(WETHBal_before)} || ILM: ${ethers.utils.formatEther(ILMBal_before)}`)
 
@@ -239,14 +239,23 @@ describe('Arbitrage Contract', () => {
             await ArbitrageInstance.startArbitrage(
                 tokenA,
                 tokenB,
-                ethers.utils.parseEther('11')
+                ethers.utils.parseEther('12.497944')
             )
             
-            const WETHBal_after = await WETHToken.balanceOf(ArbitrageInstance.address)
-            const ILMBal_after = await ILMToken.balanceOf(ArbitrageInstance.address)
+            const WETHBal_after: BigNumber = await WETHToken.balanceOf(ArbitrageInstance.address)
+            const ILMBal_after: BigNumber = await ILMToken.balanceOf(ArbitrageInstance.address)
 
             console.log(`Final bal: WETH: ${ethers.utils.formatEther(WETHBal_after)} || ILM: ${ethers.utils.formatEther(ILMBal_after)}`)
             
+
+            const reservesF1_after = await Pair1Instance.getReserves()
+            console.log(`Exchange 1: reserve0: ${ethers.utils.formatEther(reservesF1_after._reserve0)} | reserve1: ${ethers.utils.formatEther(reservesF1_after._reserve1)}`)
+
+            const reservesF2_after = await Pair2Instance.getReserves()
+            console.log(`Exchange 2: reserve0: ${ethers.utils.formatEther(reservesF2_after._reserve0)} | reserve1: ${ethers.utils.formatEther(reservesF2_after._reserve1)}`)
+
+            expect(WETHBal_after.gte(WETHBal_before)).to.be.true
+            expect(ILMBal_after.gte(ILMBal_before)).to.be.true
         })
     })
 })

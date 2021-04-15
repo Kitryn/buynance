@@ -2,6 +2,13 @@ import ethers from 'ethers'
 import { BigNumber, FixedNumber } from 'ethers'
 import { Price, BigintIsh } from '@uniswap/sdk'
 import assert from 'assert'
+import BigNumberJS from 'bignumber.js'
+
+export interface TradeDetails {
+    START_POINT: 'BASE' | 'ALT'
+    initialLoan: BigNumber
+    expectedProfit: BigNumber
+}
 
 export function addressSortOrder(address0: string, address1: string): [string, string] {
     return address0.toLowerCase() < address1.toLowerCase() ? [address0, address1] : [address1, address0]
@@ -58,36 +65,68 @@ export function executionPrice(
     return numerator.divUnsafe(denominator)
 }
 
-// export function findMaxBuy(
-//     reserve0In: BigNumber,
-//     reserve0Out: BigNumber,
-//     fee0: number,
-//     reserve1In: BigNumber,
-//     reserve1Out: BigNumber,
-//     fee1: number
-// ) {
+export function findMaxBuy(
+    _reserveAX : BigNumber,
+    _reserveA1 : BigNumber,
+    _reserveBX : BigNumber,
+    _reserveB1 : BigNumber
+): TradeDetails {
+    const reserveAX = new BigNumberJS(_reserveAX.toString())
+    const reserveA1 = new BigNumberJS(_reserveA1.toString())
+    const reserveBX = new BigNumberJS(_reserveBX.toString())
+    const reserveB1 = new BigNumberJS(_reserveB1.toString())
     
-// }
+    // Assume X is our stablecoin or MATIC or WETH or whatever
+    // True price in terms of our maincoin
+    const truePrice = reserveAX.plus(reserveBX).div(reserveA1.plus(reserveB1))
+    const ratioA = reserveAX.div(reserveA1)
+    
+    // Assume exchange A is our main exchange
 
-// export function findMaxBuy(
-    // reserve0In: BigNumber,
-    // reserve0Out: BigNumber,
-    // fee0: number,
-    // reserve1In: BigNumber,
-    // reserve1Out: BigNumber,
-    // fee1: number
-// ) {
-//     // TODO -- REFACTOR TO USE UNISWAP SDK TOKENAMOUNTS??
+    const kA = reserveAX.times(reserveA1)
+    const kB = reserveBX.times(reserveB1)
+    const new_reserveA1 = kA.div(truePrice).sqrt()
+    // const new_reserveAX = kA.div(new_reserveA1)
+    const new_reserveB1 = kB.div(truePrice).sqrt()
+    // const new_reserveBX = kB.div(new_reserveB1)
+    
+    const profit1 = reserveA1.plus(reserveB1).minus(new_reserveA1).minus(new_reserveB1)
+    // const profitX = reserveAX.plus(reserveBX).minus(new_reserveAX).minus(new_reserveBX)
 
-//     const _fee0 = FixedNumber.from(1-fee0)
-//     const _fee1 = FixedNumber.from(1-fee1)
-//     const reserve0x = FixedNumber.from(reserve0In)
-//     const reserve0y = FixedNumber.from(reserve0Out)
-//     const reserve1x = FixedNumber.from(reserve1In)
-//     const reserve1y = FixedNumber.from(reserve1Out)
+    // we now need to get rid of 1 because we only want X. our maincoin
+    const total1 = new_reserveA1.plus(new_reserveB1)
+    const new_new_reserveA1 = new_reserveA1.plus(profit1.times(new_reserveA1.div(total1)))
+    const new_new_reserveAX = kA.div(new_new_reserveA1)
 
-//     // (sqrt(fee2)sqrt(r2x)sqrt(r2y)sqrt(r1x)sqrt(r1y)) / (sqrt(fee1)(fee2*r1y*r2y)) - (r2y*r1x) / (fee1(fee2*r1y+r2y))
-// }
+    const new_new_reserveB1 = new_reserveB1.plus(profit1.times(new_reserveB1.div(total1)))
+    const new_new_reserveBX = kB.div(new_new_reserveB1)
+
+    const new_profit1 = reserveA1.plus(reserveB1).minus(new_new_reserveA1).minus(new_new_reserveB1)
+    const new_profitX = reserveAX.plus(reserveBX).minus(new_new_reserveAX).minus(new_new_reserveBX)
+
+    let START_POINT: 'BASE' | 'ALT'
+    let initialLoan: BigNumber
+    let expectedProfit: BigNumber
+    let temp: BigNumberJS
+    // if truePrice is smaller than ratio on exchangeA. we need to flashloan main coin to sell on exchange B
+    // else, flashloan other coin
+    if (truePrice.lt(ratioA)) {
+        START_POINT = 'BASE'
+        temp = new_new_reserveBX.minus(reserveBX)
+    } else {
+        START_POINT = 'ALT'
+        temp = new_new_reserveB1.minus(reserveB1)
+    }
+    initialLoan = BigNumber.from(temp.toFixed(0))
+    expectedProfit = BigNumber.from(new_profitX.toFixed(0))
+
+    const output: TradeDetails = {
+        START_POINT, initialLoan, expectedProfit
+    }
+
+    return output
+}
+
 
 export function tradeDirection (
     reserveA0 : BigNumber,
