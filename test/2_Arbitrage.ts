@@ -76,9 +76,79 @@ before(async () => {
 })
 
 describe('Arbitrage Contract', () => {
-    it('Should deploy', async () => {
-        const Arbitrage: ContractFactory = await ethers.getContractFactory('Arbitrage')
-        const ArbitrageInstance: Contract = await Arbitrage.deploy(Factory1Instance.address, Router1Instance.address)
-        expect(ArbitrageInstance.address).to.be.ok
+    describe('Set up', async () => {
+        let Arbitrage: ContractFactory
+        let ArbitrageInstance: Contract
+
+        beforeEach(async () => {
+            Arbitrage = await ethers.getContractFactory('Arbitrage')
+            ArbitrageInstance = await Arbitrage.deploy(Factory1Instance.address, Router1Instance.address)
+        })
+        
+        it('Should deploy', async () => {
+            expect(ArbitrageInstance.address).to.be.ok
+        })
+
+        it('Should set owner', async () => {
+            expect(await ArbitrageInstance.owner()).to.equal(await owner.getAddress())
+        })
+
+        it('Should receive funds', async () => {
+            const tx = {
+                to: ArbitrageInstance.address,
+                value: ethers.utils.parseEther('1')
+            }
+            await owner.sendTransaction(tx)
+            expect(await ethers.provider.getBalance(ArbitrageInstance.address)).to.equal(ethers.utils.parseEther('1'))
+        })
+
+        it('Should not have funds', async () => {
+            expect(await ethers.provider.getBalance(ArbitrageInstance.address)).to.equal(ethers.utils.parseEther('0'))
+        })
+
+        it('Should receive and withdraw', async () => {
+            const tx = {
+                to: ArbitrageInstance.address,
+                value: ethers.utils.parseEther('1')
+            }
+            await owner.sendTransaction(tx)
+            const beforeReceiveBal = parseFloat(ethers.utils.formatEther(await owner.getBalance()))
+            
+            await ArbitrageInstance.withdrawAll()
+            expect(await ethers.provider.getBalance(ArbitrageInstance.address)).to.equal(ethers.utils.parseEther('0'))
+            
+            const afterReceiveBal = parseFloat(ethers.utils.formatEther(await owner.getBalance()))
+
+            expect((afterReceiveBal - beforeReceiveBal) > 0.99).to.be.true
+        })
+
+        it('Should not allow 0 token withdrawal', async () => {
+            expect(await WETHToken.balanceOf(ArbitrageInstance.address)).to.equal(ethers.utils.parseEther('0'))
+            try {
+                await ArbitrageInstance.withdrawAllToken(WETHToken.address)
+            } catch(err) {
+                expect(err.message).to.include('INSUFFICIENT TOKEN BALANCE')
+            }
+        })
+
+        it('Should only allow owner to call onlyOwner functions', async () => {
+            try {
+                await ArbitrageInstance.connect(accounts[1]).withdrawAll()
+            } catch(err) {
+                expect(err.message).to.include('caller is not the owner')
+            }
+        })
+
+        it('Should receive and withdraw ERC20', async () => {
+            const originalBalance = await WETHToken.balanceOf(await owner.getAddress())
+            await WETHToken.transfer(ArbitrageInstance.address, ethers.utils.parseEther('10'))
+            expect(await WETHToken.balanceOf(ArbitrageInstance.address)).to.equal(ethers.utils.parseEther('10'))
+            expect(await WETHToken.balanceOf(await owner.getAddress())).to.not.equal(originalBalance)
+
+            await ArbitrageInstance.withdrawAllToken(WETHToken.address)
+
+            expect(await WETHToken.balanceOf(ArbitrageInstance.address)).to.equal(ethers.utils.parseEther('0'))
+            expect(await WETHToken.balanceOf(await owner.getAddress())).to.equal(originalBalance)
+        })
     })
 })
