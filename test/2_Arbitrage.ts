@@ -1,7 +1,8 @@
 import { ethers } from 'hardhat'
 import { BigNumber, Contract, ContractFactory, ContractReceipt, ContractTransaction, Signer } from 'ethers'
 import { expect } from 'chai'
-import { addressSortOrder, executionPrice } from '../src/utils/utils'
+import { addressSortOrder, tradeDirection } from '../src/utils/utils'
+import { TokenAmount } from '@uniswap/sdk'
 
 let accounts: Signer[]
 let owner: Signer
@@ -82,7 +83,7 @@ describe('Arbitrage Contract', () => {
 
         beforeEach(async () => {
             Arbitrage = await ethers.getContractFactory('Arbitrage')
-            ArbitrageInstance = await Arbitrage.deploy(Factory1Instance.address, Router1Instance.address)
+            ArbitrageInstance = await Arbitrage.deploy(Factory1Instance.address, Router1Instance.address, Router2Instance.address)
         })
         
         it('Should deploy', async () => {
@@ -149,6 +150,103 @@ describe('Arbitrage Contract', () => {
 
             expect(await WETHToken.balanceOf(ArbitrageInstance.address)).to.equal(ethers.utils.parseEther('0'))
             expect(await WETHToken.balanceOf(await owner.getAddress())).to.equal(originalBalance)
+        })
+    })
+
+    describe('Arbitrage', async () => {
+        let Arbitrage: ContractFactory
+        let ArbitrageInstance: Contract
+
+        beforeEach(async () => {
+            Arbitrage = await ethers.getContractFactory('Arbitrage')
+            ArbitrageInstance = await Arbitrage.deploy(Factory1Instance.address, Router1Instance.address,  Router2Instance.address)
+        })
+
+        it('Should throw if pair does not exist', async () => {
+            try {
+                await ArbitrageInstance.startArbitrage(
+                    WETHToken.address,
+                    ethers.constants.AddressZero,
+                    ethers.utils.parseEther('0.5')
+                )
+            } catch (err) {
+                expect(err.message).to.include('PAIR DOES NOT EXIST')
+            }
+        })
+
+        // it('Should only allow the pair to call the callback', async () => {
+        //     // console.log('pair', Pair1Instance.address)
+        //     try {
+        //         await ArbitrageInstance.uniswapV2Call(
+        //             Pair1Instance.address,
+        //             ethers.utils.parseEther('0.5'),
+        //             ethers.utils.parseEther('0'),
+        //             ethers.utils.formatBytes32String('lol')
+        //         )
+        //     } catch (err) {
+        //         expect(err.message).to.include('UNAUTHORIZED')
+        //     }
+        // })
+
+        it('Should arbitrage??', async () => {
+            await ILMToken.approve(Router1Instance.address, ethers.BigNumber.from(2).pow(256).sub(1))
+            await WETHToken.approve(Router1Instance.address, ethers.BigNumber.from(2).pow(256).sub(1))
+            await ILMToken.approve(Router2Instance.address, ethers.BigNumber.from(2).pow(256).sub(1))
+            await WETHToken.approve(Router2Instance.address, ethers.BigNumber.from(2).pow(256).sub(1))
+
+            await Router1Instance.addLiquidity(
+                WETHToken.address, 
+                ILMToken.address,
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                await owner.getAddress(),
+                ethers.BigNumber.from(Math.floor(Date.now() / 1000 + 10000))
+            )
+            
+            await Router2Instance.addLiquidity(
+                WETHToken.address, 
+                ILMToken.address,
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('950'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('950'),
+                await owner.getAddress(),
+                ethers.BigNumber.from(Math.floor(Date.now() / 1000 + 10000))
+            )
+
+            const reservesF1 = await Pair1Instance.getReserves()
+            console.log(`Exchange 1: reserve0: ${ethers.utils.formatEther(reservesF1._reserve0)} | reserve1: ${ethers.utils.formatEther(reservesF1._reserve1)}`)
+
+            const reservesF2 = await Pair2Instance.getReserves()
+            console.log(`Exchange 2: reserve0: ${ethers.utils.formatEther(reservesF2._reserve0)} | reserve1: ${ethers.utils.formatEther(reservesF2._reserve1)}`)
+            
+
+            const WETHBal_before = await WETHToken.balanceOf(ArbitrageInstance.address)
+            const ILMBal_before = await ILMToken.balanceOf(ArbitrageInstance.address)
+
+            console.log(`Initial bal: WETH: ${ethers.utils.formatEther(WETHBal_before)} || ILM: ${ethers.utils.formatEther(ILMBal_before)}`)
+
+            // Convention -> consider 0->1 as forward (true) and 1->0 as backward (false
+            const direction: boolean = tradeDirection(reservesF1._reserve0, reservesF1._reserve1, reservesF2._reserve0, reservesF2._reserve1)
+            // if true, flashloan token1
+            // NOTE -- this code is probably wrong, but just to try
+            let token0, token1
+            [token0, token1] = addressSortOrder(WETHToken.address, ILMToken.address)
+            let tokenA, tokenB
+            [tokenA, tokenB] = direction ? [ token1, token0 ] : [ token0, token1 ]
+            await ArbitrageInstance.startArbitrage(
+                tokenA,
+                tokenB,
+                ethers.utils.parseEther('11')
+            )
+            
+            const WETHBal_after = await WETHToken.balanceOf(ArbitrageInstance.address)
+            const ILMBal_after = await ILMToken.balanceOf(ArbitrageInstance.address)
+
+            console.log(`Final bal: WETH: ${ethers.utils.formatEther(WETHBal_after)} || ILM: ${ethers.utils.formatEther(ILMBal_after)}`)
+            
         })
     })
 })
