@@ -2,6 +2,7 @@ import { ethers } from 'hardhat'
 import { BigNumber, Contract, ContractFactory, ContractReceipt, ContractTransaction, Signer } from 'ethers'
 import { expect } from 'chai'
 import { addressSortOrder, findMaxBuy, StartPoint, tradeDirection, TradeDetails } from '../src/utils/utils'
+import BigNumberJS from 'bignumber.js'
 
 let accounts: Signer[]
 let owner: Signer
@@ -237,7 +238,11 @@ describe('Arbitrage Contract', () => {
             let F2WethReserves_after, F2IlmReserves_after
             [F2WethReserves_after, F2IlmReserves_after] = WETHToken.address.toLowerCase() < ILMToken.address.toLowerCase() ? [reservesF2_after._reserve0, reservesF2_after._reserve1] : [reservesF2_after._reserve1, reservesF2_after._reserve0]            
             console.log(`Exchange 2: WETH: ${ethers.utils.formatEther(F2WethReserves_after)} | ILM: ${ethers.utils.formatEther(F2IlmReserves_after)}`)
+            
+            const ratio1: BigNumberJS = (new BigNumberJS(F1IlmReserves_after.toString())).div(new BigNumberJS(F1WethReserves_after.toString()))
+            const ratio2: BigNumberJS = (new BigNumberJS(F2IlmReserves_after.toString())).div(new BigNumberJS(F2WethReserves_after.toString()))
 
+            console.log(`Ratio1: ${ratio1.toFixed()}, Ratio2: ${ratio2.toFixed()}`)
             expect(WETHBal_after.gte(WETHBal_before)).to.be.true
             expect(ILMBal_after.gte(ILMBal_before)).to.be.true
         }
@@ -398,6 +403,66 @@ describe('Arbitrage Contract', () => {
                 ethers.utils.parseEther('1000'),
                 ethers.utils.parseEther('1000'),
                 ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                await owner.getAddress(),
+                ethers.BigNumber.from(Math.floor(Date.now() / 1000 + 10000))
+            )
+            // TODO -- the above code doesn't check if approval on Arbitrage.sol works because it pre-approves
+            try {
+                await doArbitrage()
+            } catch (err) {
+                expect(err.message).to.include('revert UniswapV2: INSUFFICIENT_OUTPUT_AMOUNT')
+            }
+        })
+
+        it('Should arbitrage Test Case #7', async () => {
+            await Router1Instance.addLiquidity(
+                WETHToken.address, 
+                ILMToken.address,
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                await owner.getAddress(),
+                ethers.BigNumber.from(Math.floor(Date.now() / 1000 + 10000))
+            )
+            
+            await Router2Instance.addLiquidity(
+                WETHToken.address, 
+                ILMToken.address,
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1'),
+                await owner.getAddress(),
+                ethers.BigNumber.from(Math.floor(Date.now() / 1000 + 10000))
+            )
+            // TODO -- the above code doesn't check if approval on Arbitrage.sol works because it pre-approves
+            try {
+                await doArbitrage()
+            } catch (err) {
+                expect(err.message).to.include('revert UniswapV2: INSUFFICIENT_OUTPUT_AMOUNT')
+            }
+        })
+
+        it('Should arbitrage Test Case #8', async () => {
+            await Router1Instance.addLiquidity(
+                WETHToken.address, 
+                ILMToken.address,
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                await owner.getAddress(),
+                ethers.BigNumber.from(Math.floor(Date.now() / 1000 + 10000))
+            )
+            
+            await Router2Instance.addLiquidity(
+                WETHToken.address, 
+                ILMToken.address,
+                ethers.utils.parseEther('1'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1'),
                 ethers.utils.parseEther('1000'),
                 await owner.getAddress(),
                 ethers.BigNumber.from(Math.floor(Date.now() / 1000 + 10000))

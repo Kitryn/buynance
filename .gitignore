@@ -109,3 +109,4 @@ data.db
 build/contracts/*
 artifacts/*
 cache/*
+.secret

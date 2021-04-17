@@ -133,6 +133,7 @@ contract Arbitrage is Ownable {
             address[] memory invertedPath = new address[](2);
             invertedPath[0] = path[1];
             invertedPath[1] = path[0];
+            // Possibly can optimise gas better here
             refund = Utils.getAmountsIn(
                 mainFactory,
                 amountToSell,
