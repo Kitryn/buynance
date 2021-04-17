@@ -88,7 +88,8 @@ contract Arbitrage is Ownable {
         );
     }
 
-    function uniswapV2Call(
+    // NOTE -- MUST BE EITHER pancakeCall or uniswapV2Call DEPENDING ON CONTRACT CODE
+    function pancakeCall(
         address _sender,
         uint _amount0,
         uint _amount1,
