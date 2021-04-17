@@ -10,18 +10,18 @@ import './Utils.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 
-import 'hardhat/console.sol';
-
 contract Arbitrage is Ownable {
     using SafeERC20 for IERC20;
-    address public baseFactory;
-    IUniswapV2Router02 public baseRouter;
+    address public mainFactory;
+    address public otherFactory;
+    IUniswapV2Router02 public mainRouter;
     IUniswapV2Router02 public otherRouter;
     uint constant deadline = 30 minutes;
 
-    constructor(address _baseFactory, address _baseRouter, address _otherRouter) {
-        baseFactory = _baseFactory;
-        baseRouter = IUniswapV2Router02(_baseRouter);
+    constructor(address _mainFactory, address _otherFactory, address _mainRouter, address _otherRouter) {
+        mainFactory = _mainFactory;
+        otherFactory = _otherFactory;
+        mainRouter = IUniswapV2Router02(_mainRouter);
         otherRouter = IUniswapV2Router02(_otherRouter);
     }
 
@@ -40,22 +40,51 @@ contract Arbitrage is Ownable {
     receive() external payable {}
 
     function startArbitrage(
-        address tokenA,
-        address tokenB,
-        uint amountA
+        address tokenBASE,
+        address tokenALT,
+        uint amountToSell,
+        bool flashloanBASE
     ) external onlyOwner {
-        // will ALWAYS borrow tokenA to sell on otherRouter!
-        address basePair = IUniswapV2Factory(baseFactory).getPair(tokenA, tokenB);
-        require(basePair != address(0), 'PAIR DOES NOT EXIST');
+        address mainPair = IUniswapV2Factory(mainFactory).getPair(tokenBASE, tokenALT);
+        require(mainPair != address(0), 'PAIR DOES NOT EXIST');
         
-        // we need to sort amountA and amountB to a order Uniswap expects (amountB is always 0)
-        (uint sortedAmount0, uint sortedAmount1) = tokenA < tokenB ? (amountA, uint256(0)) : (uint256(0), amountA);
+        (uint reservesMainBASE, uint reservesMainALT) = Utils.getReservesFromFactory(mainFactory, tokenBASE, tokenALT);
+        (uint reservesOtherBASE, uint reservesOtherALT) = Utils.getReservesFromFactory(otherFactory, tokenBASE, tokenALT);
+        
+        uint flashloanAmount;
+        uint amount0;
+        uint amount1;
 
-        IUniswapV2Pair(basePair).swap(
-            sortedAmount0,
-            sortedAmount1,
+        if (flashloanBASE == true) {
+            // If flashloan BASE to begin with, profits will be in ALT so need to convert
+            flashloanAmount = Utils.getAmountOut(
+                Utils.getAmountOut(amountToSell, reservesOtherBASE, reservesOtherALT),
+                reservesMainALT,
+                reservesMainBASE
+            );
+            require(flashloanAmount > amountToSell, 'NOT PROFITABLE');
+
+            // we need to sort amounts into an order that Uniswap expects
+            (amount0, amount1) = tokenBASE < tokenALT ? (flashloanAmount, uint(0)) : (uint(0), flashloanAmount);
+        } else {
+            // If flashloan ALT to begin with, profits will be in BASE
+            flashloanAmount = amountToSell;
+            
+            // we need to sort amounts into an order that Uniswap expects
+            (amount0, amount1) = tokenBASE < tokenALT ? (uint(0), flashloanAmount) : (flashloanAmount, uint(0));
+        }
+        
+        // We also need to pass some data to the callback
+        bytes memory data = abi.encode(
+            amountToSell,
+            flashloanBASE
+        );
+
+        IUniswapV2Pair(mainPair).swap(
+            amount0,
+            amount1,
             address(this),
-            bytes('wat')
+            data
         );
     }
 
@@ -66,33 +95,51 @@ contract Arbitrage is Ownable {
         bytes calldata _data
     ) external {
         address[] memory path = new address[](2);
-        uint amountToken = _amount0 == 0 ? _amount1 : _amount0;
-        address token0 = IUniswapV2Pair(msg.sender).token0();  // should be msg.sender
+        // uint amountToken = _amount0 == 0 ? _amount1 : _amount0;
+        address token0 = IUniswapV2Pair(msg.sender).token0();  
         address token1 = IUniswapV2Pair(msg.sender).token1();
         // WARNING: THIS WILL NOT WORK IN PROD! HASH IN LIBRARY NEEDS TO CHANGE
-        require(msg.sender == Utils.pairFor(baseFactory, token0, token1), 'UNAUTHORIZED');
+        require(msg.sender == IUniswapV2Factory(mainFactory).getPair(token0, token1), 'UNAUTHORIZED');
         require(_amount0 == 0 || _amount1 == 0);
+
+        (uint amountToSell, bool flashloanBASE) = abi.decode(_data, (uint, bool));
 
         path[0] = _amount0 == 0 ? token1 : token0;
         path[1] = _amount0 == 0 ? token0 : token1;
 
-        IERC20 token = IERC20(path[0]);
-        IERC20 otherToken = IERC20(path[1]);
-        token.approve(address(otherRouter), amountToken);
+        IERC20 inToken = IERC20(path[0]);  // this is what we have flashloaned
+        IERC20 outToken = IERC20(path[1]);
+        inToken.approve(address(otherRouter), amountToSell); 
 
-        uint refundToBase = Utils.getAmountsIn(
-            baseFactory,
-            amountToken,
-            path
-        )[0];
+        uint refund;
         uint amountReceived = otherRouter.swapExactTokensForTokens(
-            amountToken,
-            refundToBase, 
-            path, 
-            address(this), 
-            block.timestamp + deadline  // TODO - how do we pass in a proper deadline??
+            amountToSell,
+            0,  // we'll sanity check at the end
+            path,
+            address(this),
+            block.timestamp + deadline // TODO - how do we pass in a proper deadline??
         )[1];
-
-        otherToken.transfer(msg.sender, refundToBase);
+        
+        if (flashloanBASE == true) {
+            // If flashloan BASE to begin with, profits will be in ALT so need to convert
+            // Swap amountToSell, then put all proceeds back to mainPair, and the difference between amountToSell and flashloanAmount is our profit
+            // both refund and amountReceived will be in ALT currency
+            refund = amountReceived;
+            // the require(flashloanAmount > amountToSell) check has already been performed in startArbitrage()
+        } else {
+            // if flashloan ALT to begin with, profits will be in BASE so no need to convert
+            // Swap amountToSell (which is equal to flashloanAmount), and refund only what is necessary to cover flashloan
+            // both refund and amountReceived will be in BASE currency
+            address[] memory invertedPath = new address[](2);
+            invertedPath[0] = path[1];
+            invertedPath[1] = path[0];
+            refund = Utils.getAmountsIn(
+                mainFactory,
+                amountToSell,
+                invertedPath
+            )[0];
+            require(refund < amountReceived, 'REFUND GREATER THAN AMOUNT_RECEIVED');
+        }
+        outToken.transfer(msg.sender, refund);
     }
 }

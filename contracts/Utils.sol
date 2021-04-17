@@ -5,6 +5,7 @@ pragma solidity ^0.8.3;
 import '@openzeppelin/contracts/utils/math/SafeMath.sol';
 // import '@uniswap/v2-core/contracts/libraries/SafeMath.sol';
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
+import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol';
 
 
 library Utils {
@@ -33,10 +34,18 @@ library Utils {
     }
 
     // fetches and sorts the reserves for a pair
+    // WARNING -- DO NOT USE!!
     function getReserves(address factory, address tokenA, address tokenB) internal view returns (uint reserveA, uint reserveB) {
         (address token0,) = sortTokens(tokenA, tokenB);
         (uint reserve0, uint reserve1,) = IUniswapV2Pair(pairFor(factory, tokenA, tokenB)).getReserves();
         (reserveA, reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
+    }
+    
+    // fetches and sorts the reserves for a pair (bypass determination of address from hash)
+    function getReservesFromFactory(address factory, address tokenA, address tokenB) internal view returns (uint reserveA, uint reserveB) {
+        address pair = IUniswapV2Factory(factory).getPair(tokenA, tokenB);
+        (uint reserve0, uint reserve1,) = IUniswapV2Pair(pair).getReserves();
+        (reserveA, reserveB) = tokenA < tokenB ? (reserve0, reserve1) : (reserve1, reserve0);
     }
 
     // given an output amount of an asset and pair reserves, returns a required input amount of the other asset
@@ -57,5 +66,15 @@ library Utils {
             (uint reserveIn, uint reserveOut) = getReserves(factory, path[i - 1], path[i]);
             amounts[i - 1] = getAmountIn(amounts[i], reserveIn, reserveOut);
         }
+    }
+
+    // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
+    function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) internal pure returns (uint amountOut) {
+        require(amountIn > 0, 'UniswapV2Library: INSUFFICIENT_INPUT_AMOUNT');
+        require(reserveIn > 0 && reserveOut > 0, 'UniswapV2Library: INSUFFICIENT_LIQUIDITY');
+        uint amountInWithFee = amountIn.mul(997);
+        uint numerator = amountInWithFee.mul(reserveOut);
+        uint denominator = reserveIn.mul(1000).add(amountInWithFee);
+        amountOut = numerator / denominator;
     }
 }

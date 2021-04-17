@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "test:util": "mocha --require ts-node/register './test/helper/test.ts'",
+    "test:util": "mocha --require ts-node/register './test/helper/0_test.ts'",
     "build": "tsc"
   },
   "author": "",
@@ -30,6 +30,7 @@
     "@uniswap/v2-core": "^1.0.1",
     "@uniswap/v2-periphery": "git+https://github.com/Uniswap/uniswap-v2-periphery.git",
     "better-sqlite3": "^7.1.4",
+    "bignumber.js": "^9.0.1",
     "ethers": "^5.1.0"
   }
 }
