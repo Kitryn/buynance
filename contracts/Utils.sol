@@ -17,29 +17,29 @@ library Utils {
         require(token0 != address(0), 'ZERO_ADDRESS');
     }
 
-    function pairFor(
-        address factory,
-        address tokenA,
-        address tokenB
-    ) internal pure returns (address pair) { 
-        (address token0, address token1) = sortTokens(tokenA, tokenB);
-        bytes32 _address = keccak256(abi.encodePacked(
-            hex'ff',
-            factory,
-            keccak256(abi.encodePacked(token0, token1)),
-            hex'e699c2c70a1e9ca16c58b40782745b5d609738b755845b6ee18a18d21352f753'  // init code hash
-        ));
-        bytes20 _converted = bytes20(_address << 96);
-        pair = address(_converted);
-    }
+    // function pairFor(
+    //     address factory,
+    //     address tokenA,
+    //     address tokenB
+    // ) internal pure returns (address pair) { 
+    //     (address token0, address token1) = sortTokens(tokenA, tokenB);
+    //     bytes32 _address = keccak256(abi.encodePacked(
+    //         hex'ff',
+    //         factory,
+    //         keccak256(abi.encodePacked(token0, token1)),
+    //         hex'e699c2c70a1e9ca16c58b40782745b5d609738b755845b6ee18a18d21352f753'  // init code hash
+    //     ));
+    //     bytes20 _converted = bytes20(_address << 96);
+    //     pair = address(_converted);
+    // }
 
     // fetches and sorts the reserves for a pair
     // WARNING -- DO NOT USE!!
-    function getReserves(address factory, address tokenA, address tokenB) internal view returns (uint reserveA, uint reserveB) {
-        (address token0,) = sortTokens(tokenA, tokenB);
-        (uint reserve0, uint reserve1,) = IUniswapV2Pair(pairFor(factory, tokenA, tokenB)).getReserves();
-        (reserveA, reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
-    }
+    // function getReserves(address factory, address tokenA, address tokenB) internal view returns (uint reserveA, uint reserveB) {
+    //     (address token0,) = sortTokens(tokenA, tokenB);
+    //     (uint reserve0, uint reserve1,) = IUniswapV2Pair(pairFor(factory, tokenA, tokenB)).getReserves();
+    //     (reserveA, reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
+    // }
     
     // fetches and sorts the reserves for a pair (bypass determination of address from hash)
     function getReservesFromFactory(address factory, address tokenA, address tokenB) internal view returns (uint reserveA, uint reserveB) {
@@ -63,7 +63,9 @@ library Utils {
         amounts = new uint[](path.length);
         amounts[amounts.length - 1] = amountOut;
         for (uint i = path.length - 1; i > 0; i--) {
-            (uint reserveIn, uint reserveOut) = getReserves(factory, path[i - 1], path[i]);
+            // if gas is a problem may need to hardcode getReserves for every different exchange's pairs
+            // (uint reserveIn, uint reserveOut) = getReserves(factory, path[i - 1], path[i]);
+            (uint reserveIn, uint reserveOut) = getReservesFromFactory(factory, path[i - 1], path[i]);
             amounts[i - 1] = getAmountIn(amounts[i], reserveIn, reserveOut);
         }
     }
