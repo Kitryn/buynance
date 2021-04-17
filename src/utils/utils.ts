@@ -1,11 +1,15 @@
-import ethers from 'ethers'
 import { BigNumber, FixedNumber } from 'ethers'
-import { Price, BigintIsh } from '@uniswap/sdk'
 import assert from 'assert'
 import BigNumberJS from 'bignumber.js'
 
+export enum StartPoint {
+    BASE = 'BASE',
+    ALT = 'ALT',
+    NONE = 'NONE'
+}
+
 export interface TradeDetails {
-    START_POINT: 'BASE' | 'ALT'
+    START_POINT: StartPoint
     initialLoan: BigNumber
     expectedProfit: BigNumber
 }
@@ -47,6 +51,25 @@ export function getAmountIn(  // given an output amount of an asset and pair res
     return numerator.div(denominator)
 }
 
+export function calcArb(
+    inputAmount: BigNumber,
+    startPoint: StartPoint,
+    reserveAX: BigNumber,
+    reserveAY: BigNumber,
+    reserveBX: BigNumber,
+    reserveBY: BigNumber,
+) {
+    if (startPoint === StartPoint.BASE) {
+        [reserveAY, reserveAX] = [reserveAX, reserveAY];
+        [reserveBY, reserveBX] = [reserveBX, reserveBY]
+    }
+
+    const temp = getAmountOut(inputAmount, reserveBY, reserveBX, 0.003)
+    const out = getAmountOut(temp, reserveAX, reserveAY, 0.003)
+
+    return out.sub(inputAmount)
+}
+
 export function executionPrice(
     amountIn: BigNumber,
     reserveIn: BigNumber,
@@ -67,90 +90,94 @@ export function executionPrice(
 
 export function findMaxBuy(
     _reserveAX : BigNumber,
-    _reserveA1 : BigNumber,
+    _reserveAY : BigNumber,
     _reserveBX : BigNumber,
-    _reserveB1 : BigNumber
-): TradeDetails {
-    const reserveAX = new BigNumberJS(_reserveAX.toString())
-    const reserveA1 = new BigNumberJS(_reserveA1.toString())
-    const reserveBX = new BigNumberJS(_reserveBX.toString())
-    const reserveB1 = new BigNumberJS(_reserveB1.toString())
+    _reserveBY : BigNumber
+) {
+    let reserveAX = new BigNumberJS(_reserveAX.toString())
+    let reserveAY = new BigNumberJS(_reserveAY.toString())
+    let reserveBX = new BigNumberJS(_reserveBX.toString())
+    let reserveBY = new BigNumberJS(_reserveBY.toString())
     
     // Assume X is our stablecoin or MATIC or WETH or whatever
-    // True price in terms of our maincoin
-    const truePrice = reserveAX.plus(reserveBX).div(reserveA1.plus(reserveB1))
-    const ratioA = reserveAX.div(reserveA1)
+    // First find trade direction -- will throw if insufficient liquidity
+    let START_POINT: StartPoint = tradeDirection(_reserveAX, _reserveAY, _reserveBX, _reserveBY)
     
-    // Assume exchange A is our main exchange
+    let reserveA0: BigNumberJS, reserveA1: BigNumberJS, reserveB0: BigNumberJS, reserveB1: BigNumberJS
+    let sr_reserveA0: BigNumberJS, sr_reserveA1: BigNumberJS, sr_reserveB0: BigNumberJS, sr_reserveB1: BigNumberJS
 
-    const kA = reserveAX.times(reserveA1)
-    const kB = reserveBX.times(reserveB1)
-    const new_reserveA1 = kA.div(truePrice).sqrt()
-    // const new_reserveAX = kA.div(new_reserveA1)
-    const new_reserveB1 = kB.div(truePrice).sqrt()
-    // const new_reserveBX = kB.div(new_reserveB1)
-    
-    const profit1 = reserveA1.plus(reserveB1).minus(new_reserveA1).minus(new_reserveB1)
-    // const profitX = reserveAX.plus(reserveBX).minus(new_reserveAX).minus(new_reserveBX)
-
-    // we now need to get rid of 1 because we only want X. our maincoin
-    const total1 = new_reserveA1.plus(new_reserveB1)
-    const new_new_reserveA1 = new_reserveA1.plus(profit1.times(new_reserveA1.div(total1)))
-    const new_new_reserveAX = kA.div(new_new_reserveA1)
-
-    const new_new_reserveB1 = new_reserveB1.plus(profit1.times(new_reserveB1.div(total1)))
-    const new_new_reserveBX = kB.div(new_new_reserveB1)
-
-    const new_profit1 = reserveA1.plus(reserveB1).minus(new_new_reserveA1).minus(new_new_reserveB1)
-    const new_profitX = reserveAX.plus(reserveBX).minus(new_new_reserveAX).minus(new_new_reserveBX)
-
-    let START_POINT: 'BASE' | 'ALT'
-    let initialLoan: BigNumber
-    let expectedProfit: BigNumber
-    let temp: BigNumberJS
-    // if truePrice is smaller than ratio on exchangeA. we need to flashloan main coin to sell on exchange B
-    // else, flashloan other coin
-    if (truePrice.lt(ratioA)) {
-        START_POINT = 'BASE'
-        temp = new_new_reserveBX.minus(reserveBX)
+    if (START_POINT === StartPoint.BASE) {
+        [reserveA0, reserveA1] = [reserveAY, reserveAX];
+        [reserveB0, reserveB1] = [reserveBY, reserveBX]
     } else {
-        START_POINT = 'ALT'
-        temp = new_new_reserveB1.minus(reserveB1)
+        [reserveA0, reserveA1] = [reserveAX, reserveAY];
+        [reserveB0, reserveB1] = [reserveBX, reserveBY]
     }
-    initialLoan = BigNumber.from(temp.toFixed(0))
-    expectedProfit = BigNumber.from(new_profitX.toFixed(0))
+    [sr_reserveA0, sr_reserveA1, sr_reserveB0, sr_reserveB1] = [reserveA0.sqrt(), reserveA1.sqrt(), reserveB0.sqrt(), reserveB1.sqrt()]
+
+    let fee: BigNumberJS = new BigNumberJS(1 - 0.003)
+    let inputAmount: BigNumberJS
+
+    let numerator = (fee.times(sr_reserveB0).times(sr_reserveA1).minus(sr_reserveA0.times(sr_reserveB1))).times(sr_reserveA0).times(sr_reserveB1)
+    let denominator = fee.times(fee.times(reserveB0).plus(reserveA0))
+    inputAmount = numerator.div(denominator)
+
+    const initialLoan = BigNumber.from(inputAmount.decimalPlaces(0).toFixed())
+    
+    const temp = getAmountOut(
+        initialLoan,
+        BigNumber.from(reserveB1.toFixed()),
+        BigNumber.from(reserveB0.toFixed()),
+        0.003
+    )
+    const out = getAmountOut(
+        temp,
+        BigNumber.from(reserveA0.toFixed()),
+        BigNumber.from(reserveA1.toFixed()),
+        0.003
+    )
+    
+    const expectedProfit = out.sub(initialLoan)
 
     const output: TradeDetails = {
-        START_POINT, initialLoan, expectedProfit
+        START_POINT,
+        initialLoan,
+        expectedProfit
     }
-
     return output
 }
 
-
 export function tradeDirection (
-    reserveA0 : BigNumber,
-    reserveA1 : BigNumber,
-    reserveB0 : BigNumber,
-    reserveB1 : BigNumber
-) {
-    // Price if sell A0 to get A1 ==> A1/A0
-    // BigNumber doesn't support decimals
-    const precision = BigNumber.from('10000')  // Will be able to convert to ratio with up to 5 SF
-    const A_ratio_n = reserveA1.mul(precision).div(reserveA0)
-    const A_ratio = A_ratio_n.toNumber() / precision.toNumber()
+    _reserveAX : BigNumber,
+    _reserveAY : BigNumber,
+    _reserveBX : BigNumber,
+    _reserveBY : BigNumber
+): StartPoint {
+    const reserveAX = new BigNumberJS(_reserveAX.toString())
+    const reserveAY = new BigNumberJS(_reserveAY.toString())
+    const reserveBX = new BigNumberJS(_reserveBX.toString())
+    const reserveBY = new BigNumberJS(_reserveBY.toString())
     
-    const B_ratio_n = reserveB1.mul(precision).div(reserveB0)
-    const B_ratio = B_ratio_n.toNumber() / precision.toNumber()
-    // Assume we're always starting on exchange A. 
-    // If B_ratio < A_ratio, we should go A0->A1->B1->B0
-    // If A_ratio < B_ratio, we should go from A1->A0->B0->B1
-    // Convention -> consider 0->1 as forward (true) and 1->0 as backward (false)
-    if (B_ratio < A_ratio) {
-        return true
-    } else if (B_ratio > A_ratio) {
-        return false
-    } else {
-        throw new Error('Reserves ratio is equal between exchanges!')
+    if (reserveAX.eq(0) || reserveAY.eq(0) || reserveBX.eq(0) || reserveBY.eq(0)) {
+        throw new Error('INSUFFICIENT LIQUIDITY')
     }
+
+    // Assume X is our stablecoin or MATIC or WETH or whatever
+    // True price ==> 1 of tokenY = truePrice of tokenX
+    const truePrice = reserveAX.plus(reserveBX).div(reserveAY.plus(reserveBY))
+    const ratioA = reserveAX.div(reserveAY)
+
+    // if truePrice is smaller than ratio on exchangeA. we need to flashloan main coin to sell on exchange B
+    // else, flashloan other coin
+    let START_POINT: StartPoint
+    if (truePrice.lt(ratioA)) {
+        START_POINT = StartPoint.BASE
+    } else if (truePrice.gt(ratioA)) {
+        START_POINT = StartPoint.ALT
+    } else {
+        console.log(truePrice.toFixed(), ratioA.toFixed())
+        START_POINT = StartPoint.NONE
+    }
+
+    return START_POINT
 }

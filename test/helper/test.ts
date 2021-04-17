@@ -1,38 +1,70 @@
 import { expect } from 'chai'
 import { ethers, BigNumber } from 'ethers'
-import { tradeDirection, findMaxBuy } from '../../src/utils/utils'
+import { tradeDirection, findMaxBuy, executionPrice, getAmountOut, calcArb, StartPoint } from '../../src/utils/utils'
 
-describe('utils/tradeDirection', () => {
-    let reserveA0: BigNumber
+describe('utils', () => {
+    let reserveAX: BigNumber
     let reserveA1: BigNumber
-    let reserveB0: BigNumber
+    let reserveBX: BigNumber
     let reserveB1: BigNumber
-    
-    beforeEach(() => {
-        reserveA0 = ethers.utils.parseEther('1000')
-        reserveA1 = ethers.utils.parseEther('1000')
-        reserveB0 = ethers.utils.parseEther('1000')
-        reserveB1 = ethers.utils.parseEther('950')
-    })
-    
-    it('Should return correct trade direction', () => {
-        expect(tradeDirection(reserveA0, reserveA1, reserveB0, reserveB1)).to.be.true
-        reserveB1 = ethers.utils.parseEther('10000')
-        expect(tradeDirection(reserveA0, reserveA1, reserveB0, reserveB1)).to.be.false
+    // assume tokenX is our maincoin (USD/WETH etc)
+
+    describe('utils/tradeDirection', () => {
+        beforeEach(() => {
+            reserveAX = ethers.utils.parseEther('1000')
+            reserveA1 = ethers.utils.parseEther('1000')
+            reserveBX = ethers.utils.parseEther('1000')
+            reserveB1 = ethers.utils.parseEther('950')
+        })
+
+        it('Should return ALT', () => {
+            expect(tradeDirection(reserveAX, reserveA1, reserveBX, reserveB1)).to.equal('ALT')
+        })
+
+        it('Should return BASE', () => {
+            reserveB1 = ethers.utils.parseEther('10000')
+            expect(tradeDirection(reserveAX, reserveA1, reserveBX, reserveB1)).to.equal('BASE')
+        })
+
+        it('Should return NONE', () => {
+            reserveB1 = ethers.utils.parseEther('1000')
+            expect(tradeDirection(reserveAX, reserveA1, reserveBX, reserveB1)).to.equal('NONE')            
+        })
+
+        it('Should throw with insufficient liquidity', () => {
+            reserveAX = ethers.utils.parseEther('0')
+            expect(() => tradeDirection(reserveAX, reserveA1, reserveBX, reserveB1)).to.throw('INSUFFICIENT LIQUIDITY')
+            
+            reserveAX = ethers.utils.parseEther('1000')
+            reserveA1 = ethers.utils.parseEther('0')
+            expect(() => tradeDirection(reserveAX, reserveA1, reserveBX, reserveB1)).to.throw('INSUFFICIENT LIQUIDITY')
+
+            reserveA1 = ethers.utils.parseEther('1000')
+            reserveBX = ethers.utils.parseEther('0')
+            expect(() => tradeDirection(reserveAX, reserveA1, reserveBX, reserveB1)).to.throw('INSUFFICIENT LIQUIDITY')
+
+            reserveBX = ethers.utils.parseEther('1000')
+            reserveB1 = ethers.utils.parseEther('0')
+            expect(() => tradeDirection(reserveAX, reserveA1, reserveBX, reserveB1)).to.throw('INSUFFICIENT LIQUIDITY')
+        })
     })
 
-    it('Should fail if ratios are equal', () => {
-        reserveB1 = ethers.utils.parseEther('1000')
-        expect(() => tradeDirection(reserveA0, reserveA1, reserveB0, reserveB1)).to.throw()
-    })
+    describe('utils/findMaxBuy', () => {
+        beforeEach(() => {
+            reserveAX = ethers.utils.parseEther('1000')
+            reserveA1 = ethers.utils.parseEther('1000')
+            reserveBX = ethers.utils.parseEther('1000')
+            reserveB1 = ethers.utils.parseEther('950')
+        })
 
-    it('Should do something', () => {
-        const tradeDetails = findMaxBuy(
-            reserveA0,
-            reserveA1,
-            reserveB0,
-            reserveB1
-        )
-        console.log(tradeDetails.START_POINT, ethers.utils.formatEther(tradeDetails.initialLoan), ethers.utils.formatEther(tradeDetails.expectedProfit))
+        it('Should do something', () => {
+            const tradeDetails = findMaxBuy(
+                reserveAX,
+                reserveA1,
+                reserveBX,
+                reserveB1
+            )
+            console.log(tradeDetails.START_POINT, ethers.utils.formatEther(tradeDetails.initialLoan), ethers.utils.formatEther(tradeDetails.expectedProfit))
+        })
     })
 })
