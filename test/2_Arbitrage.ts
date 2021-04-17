@@ -1,8 +1,7 @@
 import { ethers } from 'hardhat'
 import { BigNumber, Contract, ContractFactory, ContractReceipt, ContractTransaction, Signer } from 'ethers'
 import { expect } from 'chai'
-import { addressSortOrder, StartPoint, tradeDirection } from '../src/utils/utils'
-import { TokenAmount } from '@uniswap/sdk'
+import { addressSortOrder, findMaxBuy, StartPoint, tradeDirection, TradeDetails } from '../src/utils/utils'
 
 let accounts: Signer[]
 let owner: Signer
@@ -83,7 +82,7 @@ describe('Arbitrage Contract', () => {
 
         beforeEach(async () => {
             Arbitrage = await ethers.getContractFactory('Arbitrage')
-            ArbitrageInstance = await Arbitrage.deploy(Factory1Instance.address, Router1Instance.address, Router2Instance.address)
+            ArbitrageInstance = await Arbitrage.deploy(Factory1Instance.address, Factory2Instance.address, Router1Instance.address, Router2Instance.address)
         })
         
         it('Should deploy', async () => {
@@ -158,8 +157,9 @@ describe('Arbitrage Contract', () => {
         let ArbitrageInstance: Contract
 
         beforeEach(async () => {
+            await deployInfrastructure()
             Arbitrage = await ethers.getContractFactory('Arbitrage')
-            ArbitrageInstance = await Arbitrage.deploy(Factory1Instance.address, Router1Instance.address,  Router2Instance.address)
+            ArbitrageInstance = await Arbitrage.deploy(Factory1Instance.address, Factory2Instance.address, Router1Instance.address,  Router2Instance.address)
         })
 
         it('Should throw if pair does not exist', async () => {
@@ -167,26 +167,14 @@ describe('Arbitrage Contract', () => {
                 await ArbitrageInstance.startArbitrage(
                     WETHToken.address,
                     ethers.constants.AddressZero,
-                    ethers.utils.parseEther('0.5')
+                    ethers.utils.parseEther('0.5'),
+                    true
                 )
             } catch (err) {
                 expect(err.message).to.include('PAIR DOES NOT EXIST')
             }
         })
 
-        // it('Should only allow the pair to call the callback', async () => {
-        //     // console.log('pair', Pair1Instance.address)
-        //     try {
-        //         await ArbitrageInstance.uniswapV2Call(
-        //             Pair1Instance.address,
-        //             ethers.utils.parseEther('0.5'),
-        //             ethers.utils.parseEther('0'),
-        //             ethers.utils.formatBytes32String('lol')
-        //         )
-        //     } catch (err) {
-        //         expect(err.message).to.include('UNAUTHORIZED')
-        //     }
-        // })
 
         it('Should arbitrage??', async () => {
             await ILMToken.approve(Router1Instance.address, ethers.BigNumber.from(2).pow(256).sub(1))
@@ -216,44 +204,66 @@ describe('Arbitrage Contract', () => {
                 ethers.BigNumber.from(Math.floor(Date.now() / 1000 + 10000))
             )
 
+            // TODO -- the above code doesn't check if approval on Arbitrage.sol works because it pre-approves
+
             const reservesF1 = await Pair1Instance.getReserves()
-            console.log(`Exchange 1: reserve0: ${ethers.utils.formatEther(reservesF1._reserve0)} | reserve1: ${ethers.utils.formatEther(reservesF1._reserve1)}`)
+            let F1WethReserves, F1IlmReserves
+            [F1WethReserves, F1IlmReserves] = WETHToken.address.toLowerCase() < ILMToken.address.toLowerCase() ? [reservesF1._reserve0, reservesF1._reserve1] : [reservesF1._reserve1, reservesF1._reserve0]
+            console.log(`Exchange 1: WETH: ${ethers.utils.formatEther(F1WethReserves)} | ILM: ${ethers.utils.formatEther(F1IlmReserves)}`)
 
             const reservesF2 = await Pair2Instance.getReserves()
-            console.log(`Exchange 2: reserve0: ${ethers.utils.formatEther(reservesF2._reserve0)} | reserve1: ${ethers.utils.formatEther(reservesF2._reserve1)}`)
+            let F2WethReserves, F2IlmReserves
+            [F2WethReserves, F2IlmReserves] = WETHToken.address.toLowerCase() < ILMToken.address.toLowerCase() ? [reservesF2._reserve0, reservesF2._reserve1] : [reservesF2._reserve1, reservesF2._reserve0]            
+            console.log(`Exchange 2: WETH: ${ethers.utils.formatEther(F2WethReserves)} | ILM: ${ethers.utils.formatEther(F2IlmReserves)}`)
             
-
             const WETHBal_before: BigNumber = await WETHToken.balanceOf(ArbitrageInstance.address)
             const ILMBal_before: BigNumber = await ILMToken.balanceOf(ArbitrageInstance.address)
-
             console.log(`Initial bal: WETH: ${ethers.utils.formatEther(WETHBal_before)} || ILM: ${ethers.utils.formatEther(ILMBal_before)}`)
 
-            // Convention -> consider 0->1 as forward (true) and 1->0 as backward (false
-            const direction: StartPoint = tradeDirection(reservesF1._reserve0, reservesF1._reserve1, reservesF2._reserve0, reservesF2._reserve1)
-            // if true, flashloan token1
-            // NOTE -- this code is probably wrong, but just to try
-            let token0, token1
-            [token0, token1] = addressSortOrder(WETHToken.address, ILMToken.address)
+            let tradeDetails: TradeDetails = findMaxBuy(
+                F1WethReserves,
+                F1IlmReserves,
+                F2WethReserves,
+                F2IlmReserves,
+                true
+            )
+            if (tradeDetails.START_POINT !== StartPoint.BASE && tradeDetails.START_POINT !== StartPoint.ALT) {
+                throw new Error('Invalid reserve state!')
+            }
+            let flashloanBASE: boolean = tradeDetails.START_POINT === StartPoint.BASE ? true : false
 
-            let tokenA, tokenB
-            [tokenA, tokenB] = direction === StartPoint.ALT ? [ token1, token0 ] : [ token0, token1 ]
+            console.log(`TradeDetails: Start ${tradeDetails.START_POINT}, Loan ${ethers.utils.formatEther(tradeDetails.initialLoan.quantity)}, Expected ${ethers.utils.formatEther(tradeDetails.expectedProfit.quantity)}`)
+
+            const gasEstimate = await ArbitrageInstance.estimateGas.startArbitrage(
+                WETHToken.address,
+                ILMToken.address,
+                tradeDetails.initialLoan.quantity,
+                flashloanBASE
+            )
+            console.log(`Estimate gas used: ${gasEstimate}`)
+
+
             await ArbitrageInstance.startArbitrage(
-                tokenA,
-                tokenB,
-                ethers.utils.parseEther('12.497944')
+                WETHToken.address,
+                ILMToken.address,
+                tradeDetails.initialLoan.quantity,
+                flashloanBASE
             )
             
             const WETHBal_after: BigNumber = await WETHToken.balanceOf(ArbitrageInstance.address)
             const ILMBal_after: BigNumber = await ILMToken.balanceOf(ArbitrageInstance.address)
 
             console.log(`Final bal: WETH: ${ethers.utils.formatEther(WETHBal_after)} || ILM: ${ethers.utils.formatEther(ILMBal_after)}`)
-            
 
             const reservesF1_after = await Pair1Instance.getReserves()
-            console.log(`Exchange 1: reserve0: ${ethers.utils.formatEther(reservesF1_after._reserve0)} | reserve1: ${ethers.utils.formatEther(reservesF1_after._reserve1)}`)
+            let F1WethReserves_after, F1IlmReserves_after
+            [F1WethReserves_after, F1IlmReserves_after] = WETHToken.address.toLowerCase() < ILMToken.address.toLowerCase() ? [reservesF1_after._reserve0, reservesF1_after._reserve1] : [reservesF1_after._reserve1, reservesF1_after._reserve0]
+            console.log(`Exchange 1: WETH: ${ethers.utils.formatEther(F1WethReserves_after)} | ILM: ${ethers.utils.formatEther(F1IlmReserves_after)}`)
 
             const reservesF2_after = await Pair2Instance.getReserves()
-            console.log(`Exchange 2: reserve0: ${ethers.utils.formatEther(reservesF2_after._reserve0)} | reserve1: ${ethers.utils.formatEther(reservesF2_after._reserve1)}`)
+            let F2WethReserves_after, F2IlmReserves_after
+            [F2WethReserves_after, F2IlmReserves_after] = WETHToken.address.toLowerCase() < ILMToken.address.toLowerCase() ? [reservesF2_after._reserve0, reservesF2_after._reserve1] : [reservesF2_after._reserve1, reservesF2_after._reserve0]            
+            console.log(`Exchange 2: WETH: ${ethers.utils.formatEther(F2WethReserves_after)} | ILM: ${ethers.utils.formatEther(F2IlmReserves_after)}`)
 
             expect(WETHBal_after.gte(WETHBal_before)).to.be.true
             expect(ILMBal_after.gte(ILMBal_before)).to.be.true
