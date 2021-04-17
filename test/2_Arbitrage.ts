@@ -1,7 +1,7 @@
 import { ethers } from 'hardhat'
 import { BigNumber, Contract, ContractFactory, ContractReceipt, ContractTransaction, Signer } from 'ethers'
 import { expect } from 'chai'
-import { addressSortOrder, tradeDirection } from '../src/utils/utils'
+import { addressSortOrder, StartPoint, tradeDirection } from '../src/utils/utils'
 import { TokenAmount } from '@uniswap/sdk'
 
 let accounts: Signer[]
@@ -229,13 +229,14 @@ describe('Arbitrage Contract', () => {
             console.log(`Initial bal: WETH: ${ethers.utils.formatEther(WETHBal_before)} || ILM: ${ethers.utils.formatEther(ILMBal_before)}`)
 
             // Convention -> consider 0->1 as forward (true) and 1->0 as backward (false
-            const direction: boolean = tradeDirection(reservesF1._reserve0, reservesF1._reserve1, reservesF2._reserve0, reservesF2._reserve1)
+            const direction: StartPoint = tradeDirection(reservesF1._reserve0, reservesF1._reserve1, reservesF2._reserve0, reservesF2._reserve1)
             // if true, flashloan token1
             // NOTE -- this code is probably wrong, but just to try
             let token0, token1
             [token0, token1] = addressSortOrder(WETHToken.address, ILMToken.address)
+
             let tokenA, tokenB
-            [tokenA, tokenB] = direction ? [ token1, token0 ] : [ token0, token1 ]
+            [tokenA, tokenB] = direction === StartPoint.ALT ? [ token1, token0 ] : [ token0, token1 ]
             await ArbitrageInstance.startArbitrage(
                 tokenA,
                 tokenB,

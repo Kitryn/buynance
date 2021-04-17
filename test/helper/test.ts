@@ -57,14 +57,19 @@ describe('utils', () => {
             reserveB1 = ethers.utils.parseEther('950')
         })
 
-        it('Should do something', () => {
+        it('TODO: Write some tests for this', () => {
+
             const tradeDetails = findMaxBuy(
                 reserveAX,
                 reserveA1,
                 reserveBX,
-                reserveB1
+                reserveB1,
+                false
             )
-            console.log(tradeDetails.START_POINT, ethers.utils.formatEther(tradeDetails.initialLoan), ethers.utils.formatEther(tradeDetails.expectedProfit))
+
+            console.log(`Initial loan of ${tradeDetails.initialLoan.asset}: ${ethers.utils.formatEther(tradeDetails.initialLoan.quantity)}`)
+            console.log(`Expected profit in ${tradeDetails.expectedProfit.asset}: ${ethers.utils.formatEther(tradeDetails.expectedProfit.quantity)}`)
+
         })
     })
 })
