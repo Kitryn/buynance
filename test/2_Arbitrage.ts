@@ -158,6 +158,10 @@ describe('Arbitrage Contract', () => {
 
         beforeEach(async () => {
             await deployInfrastructure()
+            await ILMToken.approve(Router1Instance.address, ethers.BigNumber.from(2).pow(256).sub(1))
+            await WETHToken.approve(Router1Instance.address, ethers.BigNumber.from(2).pow(256).sub(1))
+            await ILMToken.approve(Router2Instance.address, ethers.BigNumber.from(2).pow(256).sub(1))
+            await WETHToken.approve(Router2Instance.address, ethers.BigNumber.from(2).pow(256).sub(1))
             Arbitrage = await ethers.getContractFactory('Arbitrage')
             ArbitrageInstance = await Arbitrage.deploy(Factory1Instance.address, Factory2Instance.address, Router1Instance.address,  Router2Instance.address)
         })
@@ -175,37 +179,7 @@ describe('Arbitrage Contract', () => {
             }
         })
 
-
-        it('Should arbitrage??', async () => {
-            await ILMToken.approve(Router1Instance.address, ethers.BigNumber.from(2).pow(256).sub(1))
-            await WETHToken.approve(Router1Instance.address, ethers.BigNumber.from(2).pow(256).sub(1))
-            await ILMToken.approve(Router2Instance.address, ethers.BigNumber.from(2).pow(256).sub(1))
-            await WETHToken.approve(Router2Instance.address, ethers.BigNumber.from(2).pow(256).sub(1))
-
-            await Router1Instance.addLiquidity(
-                WETHToken.address, 
-                ILMToken.address,
-                ethers.utils.parseEther('1000'),
-                ethers.utils.parseEther('1000'),
-                ethers.utils.parseEther('1000'),
-                ethers.utils.parseEther('1000'),
-                await owner.getAddress(),
-                ethers.BigNumber.from(Math.floor(Date.now() / 1000 + 10000))
-            )
-            
-            await Router2Instance.addLiquidity(
-                WETHToken.address, 
-                ILMToken.address,
-                ethers.utils.parseEther('1000'),
-                ethers.utils.parseEther('950'),
-                ethers.utils.parseEther('1000'),
-                ethers.utils.parseEther('950'),
-                await owner.getAddress(),
-                ethers.BigNumber.from(Math.floor(Date.now() / 1000 + 10000))
-            )
-
-            // TODO -- the above code doesn't check if approval on Arbitrage.sol works because it pre-approves
-
+        async function doArbitrage() {
             const reservesF1 = await Pair1Instance.getReserves()
             let F1WethReserves, F1IlmReserves
             [F1WethReserves, F1IlmReserves] = WETHToken.address.toLowerCase() < ILMToken.address.toLowerCase() ? [reservesF1._reserve0, reservesF1._reserve1] : [reservesF1._reserve1, reservesF1._reserve0]
@@ -227,9 +201,9 @@ describe('Arbitrage Contract', () => {
                 F2IlmReserves,
                 true
             )
-            if (tradeDetails.START_POINT !== StartPoint.BASE && tradeDetails.START_POINT !== StartPoint.ALT) {
-                throw new Error('Invalid reserve state!')
-            }
+            // if (tradeDetails.START_POINT !== StartPoint.BASE && tradeDetails.START_POINT !== StartPoint.ALT) {
+            //     throw new Error('Invalid reserve state!')
+            // }
             let flashloanBASE: boolean = tradeDetails.START_POINT === StartPoint.BASE ? true : false
 
             console.log(`TradeDetails: Start ${tradeDetails.START_POINT}, Loan ${ethers.utils.formatEther(tradeDetails.initialLoan.quantity)}, Expected ${ethers.utils.formatEther(tradeDetails.expectedProfit.quantity)}`)
@@ -241,7 +215,6 @@ describe('Arbitrage Contract', () => {
                 flashloanBASE
             )
             console.log(`Estimate gas used: ${gasEstimate}`)
-
 
             await ArbitrageInstance.startArbitrage(
                 WETHToken.address,
@@ -267,6 +240,206 @@ describe('Arbitrage Contract', () => {
 
             expect(WETHBal_after.gte(WETHBal_before)).to.be.true
             expect(ILMBal_after.gte(ILMBal_before)).to.be.true
+        }
+
+        it('Should arbitrage Test Case #1', async () => {
+            await Router1Instance.addLiquidity(
+                WETHToken.address, 
+                ILMToken.address,
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                await owner.getAddress(),
+                ethers.BigNumber.from(Math.floor(Date.now() / 1000 + 10000))
+            )
+            
+            await Router2Instance.addLiquidity(
+                WETHToken.address, 
+                ILMToken.address,
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('950'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('950'),
+                await owner.getAddress(),
+                ethers.BigNumber.from(Math.floor(Date.now() / 1000 + 10000))
+            )
+            // TODO -- the above code doesn't check if approval on Arbitrage.sol works because it pre-approves
+
+            await doArbitrage()
         })
+
+        it('Should arbitrage Test Case #2', async () => {
+            await Router1Instance.addLiquidity(
+                WETHToken.address, 
+                ILMToken.address,
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                await owner.getAddress(),
+                ethers.BigNumber.from(Math.floor(Date.now() / 1000 + 10000))
+            )
+            
+            await Router2Instance.addLiquidity(
+                WETHToken.address, 
+                ILMToken.address,
+                ethers.utils.parseEther('950'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('950'),
+                ethers.utils.parseEther('1000'),
+                await owner.getAddress(),
+                ethers.BigNumber.from(Math.floor(Date.now() / 1000 + 10000))
+            )
+            // TODO -- the above code doesn't check if approval on Arbitrage.sol works because it pre-approves
+
+            await doArbitrage()
+        })
+
+        it('Should arbitrage Test Case #3', async () => {
+            await Router1Instance.addLiquidity(
+                WETHToken.address, 
+                ILMToken.address,
+                ethers.utils.parseEther('950'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('950'),
+                ethers.utils.parseEther('1000'),
+                await owner.getAddress(),
+                ethers.BigNumber.from(Math.floor(Date.now() / 1000 + 10000))
+            )
+            
+            await Router2Instance.addLiquidity(
+                WETHToken.address, 
+                ILMToken.address,
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                await owner.getAddress(),
+                ethers.BigNumber.from(Math.floor(Date.now() / 1000 + 10000))
+            )
+            // TODO -- the above code doesn't check if approval on Arbitrage.sol works because it pre-approves
+
+            await doArbitrage()
+        })
+
+        it('Should arbitrage Test Case #4', async () => {
+            await Router1Instance.addLiquidity(
+                WETHToken.address, 
+                ILMToken.address,
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('950'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('950'),
+                await owner.getAddress(),
+                ethers.BigNumber.from(Math.floor(Date.now() / 1000 + 10000))
+            )
+            
+            await Router2Instance.addLiquidity(
+                WETHToken.address, 
+                ILMToken.address,
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                await owner.getAddress(),
+                ethers.BigNumber.from(Math.floor(Date.now() / 1000 + 10000))
+            )
+            // TODO -- the above code doesn't check if approval on Arbitrage.sol works because it pre-approves
+
+            await doArbitrage()
+        })
+
+        it('Should arbitrage Test Case #5', async () => {
+            await Router1Instance.addLiquidity(
+                WETHToken.address, 
+                ILMToken.address,
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1'),
+                await owner.getAddress(),
+                ethers.BigNumber.from(Math.floor(Date.now() / 1000 + 10000))
+            )
+            
+            await Router2Instance.addLiquidity(
+                WETHToken.address, 
+                ILMToken.address,
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                await owner.getAddress(),
+                ethers.BigNumber.from(Math.floor(Date.now() / 1000 + 10000))
+            )
+            // TODO -- the above code doesn't check if approval on Arbitrage.sol works because it pre-approves
+            try {
+                await doArbitrage()
+            } catch (err) {
+                expect(err.message).to.include('revert UniswapV2: INSUFFICIENT_OUTPUT_AMOUNT')
+            }
+        })
+
+        it('Should arbitrage Test Case #6', async () => {
+            await Router1Instance.addLiquidity(
+                WETHToken.address, 
+                ILMToken.address,
+                ethers.utils.parseEther('1'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1'),
+                ethers.utils.parseEther('1000'),
+                await owner.getAddress(),
+                ethers.BigNumber.from(Math.floor(Date.now() / 1000 + 10000))
+            )
+            
+            await Router2Instance.addLiquidity(
+                WETHToken.address, 
+                ILMToken.address,
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                await owner.getAddress(),
+                ethers.BigNumber.from(Math.floor(Date.now() / 1000 + 10000))
+            )
+            // TODO -- the above code doesn't check if approval on Arbitrage.sol works because it pre-approves
+            try {
+                await doArbitrage()
+            } catch (err) {
+                expect(err.message).to.include('revert UniswapV2: INSUFFICIENT_OUTPUT_AMOUNT')
+            }
+        })
+
+        it('Should NOT arbitrage Test Case #1', async () => {
+            await Router1Instance.addLiquidity(
+                WETHToken.address, 
+                ILMToken.address,
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                await owner.getAddress(),
+                ethers.BigNumber.from(Math.floor(Date.now() / 1000 + 10000))
+            )
+            
+            await Router2Instance.addLiquidity(
+                WETHToken.address, 
+                ILMToken.address,
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                ethers.utils.parseEther('1000'),
+                await owner.getAddress(),
+                ethers.BigNumber.from(Math.floor(Date.now() / 1000 + 10000))
+            )
+            // TODO -- the above code doesn't check if approval on Arbitrage.sol works because it pre-approves
+            try {
+                await doArbitrage()
+            } catch (err) {
+                expect(err.message).to.include('revert UniswapV2: INSUFFICIENT_OUTPUT_AMOUNT')
+            }
+        })
+
+        
     })
 })
