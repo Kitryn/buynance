@@ -3,63 +3,77 @@ import { Token, Factory } from './types'
 
 const IS_MAINNET: Boolean = process.env.NETWORK === 'MAINNET' ? true : false
 
-// Pancakeswap
-const PANCAKE_FACTORY: Factory = {
-    name: 'Pancakeswap',
-    contract_address: IS_MAINNET ? '0xBCfCcbde45cE874adCB698cC183deBcF17952812' : '0x6725F303b657a9451d8BA641348b6761A6CC7a17',
-    router_address: IS_MAINNET ? '0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F' : '0xD99D1c33F9fC3444f8101754aBC46c52416550D1',
-    fee: 0.002
+// Quickswap
+const QUICKSWAP_FACTORY: Factory = {
+    name: 'Quickswap',
+    contract_address: '0x5757371414417b8C6CAad45bAeF941aBc7d3Ab32',
+    router_address: '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff',
+    fee: 0.003
 }
 
-const SASHIMI_FACTORY: Factory = {
-    name: 'Sashimiswap',
-    contract_address: IS_MAINNET ? '0x1DaeD74ed1dD7C9Dabbe51361ac90A69d851234D' : '0x5240870Cc7A4E28eE7A79cf77d0dF69957B92da2',
-    router_address: IS_MAINNET ? '0x24cEFA86fC1826FD31b4cb911034907735F8085A': '0xb3598412392a422970D02Bd68B2Cd8eAeb41fCf3',
+const COMETHSWAP_FACTORY: Factory = {
+    name: 'Comethswap',
+    contract_address: '0x800b052609c355cA8103E06F022aA30647eAd60a',
+    router_address: '0x7dd75252cc324FD181fC4e79335b7d78A11a8019',
     fee: 0.003
 }
 
 // Remember to assert that this data matches that found in our database
-const WBNB: Token = {
+const MATIC: Token = {
     decimals: 18,
-    name: 'Wrapped BNB',
-    symbol: 'WBNB',
-    contract_address: IS_MAINNET ? '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c' : '0xae13d989dac2f0debff460ac112a837c89baa7cd'
+    name: 'MATIC',
+    symbol: 'MATIC',
+    contract_address: '0x0000000000000000000000000000000000001010'
 }
 
-const BUSD: Token = {
+// PLASMA WETH 0x8cc8538d60901d19692F5ba22684732Bc28F54A3
+const POSWETH: Token = {
     decimals: 18,
-    name: 'BUSD Token',
-    symbol: 'BUSD',
-    contract_address: IS_MAINNET ? '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56' : '0x8301f2213c0eed49a7e28ae4c3e91722919b8b47'
+    name: 'Wrapped Ether',
+    symbol: 'WETH',
+    contract_address: '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619'
 }
 
-const ETH: Token = {
-    decimals: 18,
-    name: 'Ethereum Token',
-    symbol: 'ETH',
-    contract_address: '0x2170Ed0880ac9A755fd29B2688956BD959F933F8'
+const POSUSDC: Token = {
+    decimals: 6,
+    name: 'USD Coin (PoS)',
+    symbol: 'USDC',
+    contract_address: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174'
 }
 
-const USDT: Token = {
-    decimals: 18,
-    name: 'Tether USD',
+const POSUSDT: Token = {
+    decimals: 6,
+    name: '(PoS) Tether USD',
     symbol: 'USDT',
-    contract_address: '0x55d398326f99059fF775485246999027B3197955'
+    contract_address: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F'
+}
+
+const POSDAI: Token = {
+    decimals: 18,
+    name: '(PoS) Dai Stablecoin',
+    symbol: 'DAI',
+    contract_address: '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063'
+}
+
+const POSBUSD: Token = {
+    decimals: 18,
+    name: '(PoS) Binance USD',
+    symbol: 'BUSD',
+    contract_address: '0xdAb529f40E671A1D4bF91361c21bf9f0C9712ab7'
 }
 
 let exportTokens: Record<string, Token> = {
-    WBNB,
-    BUSD
-}
-
-if (IS_MAINNET) {
-    exportTokens.ETH = ETH
-    exportTokens.USDT = USDT
+    MATIC,
+    POSWETH,
+    POSUSDC,
+    POSUSDT,
+    POSDAI,
+    POSBUSD
 }
 
 let exportFactories: Record<string, Factory> = {
-    PANCAKE_FACTORY,
-    SASHIMI_FACTORY
+    QUICKSWAP_FACTORY,
+    COMETHSWAP_FACTORY
 }
 
 export const BaseTokens = exportTokens
