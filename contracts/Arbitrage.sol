@@ -10,6 +10,14 @@ import './Utils.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 
+// Hashes for pair determination
+// --- BSC ---
+// PancakePair: 'd0d4c4cd0848c93cb4fd1f498d7013ee6bfb25783ea21593d5834f5d250ece66'
+// UniswapV2Pair: '96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f'
+// BakerySwapPair: 'e2e87433120e32c4738a7d8f3271f3d872cbe16241d67537139158d90bac61d3' 
+// MdexPair: '0d994d996174b05cfc7bed897dc1b20b4c458fc8d64fe98bc78b3c64a6b4d093'  // not tested
+
+
 contract Arbitrage is Ownable {
     using SafeERC20 for IERC20;
     address public mainFactory;
