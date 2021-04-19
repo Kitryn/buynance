@@ -8,6 +8,9 @@ import { TokenAccount } from './TokenAccount'
 import { SqliteError } from 'better-sqlite3'
 const dbConn = require('../models/DbConfig')()
 
+import util from 'util'
+const setTimeoutPromise = util.promisify(setTimeout)
+
 
 function differenceSet(a: Set<any>, b: Set<any>) {
     const difference = new Set([...a].filter(x => !b.has(x)))
@@ -116,6 +119,10 @@ export class ChainData {
                 } catch (err) {
                     console.error(`Error while fetching pair ID ${id}`)
                     console.error(err)
+                    if (err.status === 429) {
+                        console.error('Error code 429, rate limited! Back off!')
+                        await setTimeoutPromise(1000)
+                    } 
                     countErrors++
                     if (countErrors >= 100) {
                         console.error('Over 100 errors, breaking')

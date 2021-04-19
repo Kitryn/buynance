@@ -1,6 +1,6 @@
 {
     "extends": "./tsconfig.base.json",
-    "include": ["./scripts", "./test"],
+    "include": ["./scripts", "./test", "./src"],
     "exclude": ["node_modules"],
     "files": ["./hardhat.config.ts"]
 }

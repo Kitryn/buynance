@@ -19,7 +19,6 @@ const mainnet_BUSD = '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56'
 const mainnet_BAKE = '0xE02dF9e3e622DeBdD69fb838bB799E3F168902c5'
 
 
-
 async function main() {
     console.log(`Running on ${process.env.NETWORK}`)
     const RPC_URL = process.env.NETWORK === 'MAINNET' ? process.env.RPC_URL : process.env.RPC_URL_TESTNET
@@ -32,7 +31,8 @@ async function main() {
         const factoryInfo: Factory = BaseFactories[factoryKey]
         chainData.registerNewFactory(factoryInfo.name, factoryInfo.contract_address, factoryInfo.router_address, factoryInfo.fee)
     }
-    await chainData.sync('0x5240870Cc7A4E28eE7A79cf77d0dF69957B92da2')
+    await chainData.sync(BaseFactories.QUICKSWAP_FACTORY.contract_address)
+    await chainData.sync(BaseFactories.COMETHSWAP_FACTORY.contract_address)
 }
 
 main()
