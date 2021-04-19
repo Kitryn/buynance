@@ -9,7 +9,7 @@ import { ChainData } from './chain_interface/ChainData'
 import { PairAccount } from './chain_interface/PairAccount'
 import { TokenAccount } from './chain_interface/TokenAccount'
 import { ethers } from 'ethers'
-import { BaseFactories, BaseTokens } from './addresses'
+import { Factories, BaseTokens } from './addresses'
 import { Factory } from './types'
 
 // const db = require('./models/DbConfig')()
@@ -27,12 +27,12 @@ async function main() {
     chainData.loadAllFactories()
 
     // load factories from hardcoded factories since if it already exists, nothing happens
-    for (const factoryKey in BaseFactories) {
-        const factoryInfo: Factory = BaseFactories[factoryKey]
+    for (const factoryKey in Factories) {
+        const factoryInfo: Factory = Factories[factoryKey]
         chainData.registerNewFactory(factoryInfo.name, factoryInfo.contract_address, factoryInfo.router_address, factoryInfo.fee)
     }
-    await chainData.sync(BaseFactories.QUICKSWAP_FACTORY.contract_address)
-    await chainData.sync(BaseFactories.COMETHSWAP_FACTORY.contract_address)
+    await chainData.sync(Factories.QUICKSWAP_FACTORY.contract_address)
+    await chainData.sync(Factories.COMETHSWAP_FACTORY.contract_address)
 }
 
 main()

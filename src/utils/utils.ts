@@ -1,5 +1,6 @@
 import { BigNumber, FixedNumber } from 'ethers'
 import assert from 'assert'
+import { AssertionError } from 'assert'
 import BigNumberJS from 'bignumber.js'
 
 export enum StartPoint {
@@ -167,53 +168,75 @@ export function findMaxBuy(
     
     // If flashloan ALT to begin with, profits will be in BASE
     // If flashloan BASE to begin with, profits will be in ALT so may need to convert depending on convertProfitToBase
+    
+    try {
+        let midstep: BigNumber
+        midstep = getAmountOut(
+            _initialLoan,
+            BigNumber.from(reserveB1.toFixed()),
+            BigNumber.from(reserveB0.toFixed()),
+            0.003
+        )
 
-    const midstep = getAmountOut(
-        _initialLoan,
-        BigNumber.from(reserveB1.toFixed()),
-        BigNumber.from(reserveB0.toFixed()),
-        0.003
-    )
-
-    let _expectedProfit: BigNumber
-    let expectedProfit: Quantity
-
-    if (START_POINT === StartPoint.ALT) {
-        const repay = getAmountIn(_initialLoan, BigNumber.from(reserveA0.toFixed()), BigNumber.from(reserveA1.toFixed()), 0.003)
-        _expectedProfit = midstep.sub(repay)
-        expectedProfit = {
-            asset: 'BASE',
-            quantity: _expectedProfit
-        }
-    } else {
-        // START_POINT === BASE
-        if (convertProfitToBase) {
-            const out = getAmountOut(midstep, BigNumber.from(reserveA0.toFixed()), BigNumber.from(reserveA1.toFixed()), 0.003)
-            _expectedProfit = out.sub(_initialLoan)
+        let _expectedProfit: BigNumber
+        let expectedProfit: Quantity
+    
+        if (START_POINT === StartPoint.ALT) {
+            const repay = getAmountIn(_initialLoan, BigNumber.from(reserveA0.toFixed()), BigNumber.from(reserveA1.toFixed()), 0.003)
+            _expectedProfit = midstep.sub(repay)
             expectedProfit = {
                 asset: 'BASE',
                 quantity: _expectedProfit
             }
         } else {
-            const repay = getAmountIn(_initialLoan, BigNumber.from(reserveA0.toFixed()), BigNumber.from(reserveA1.toFixed()), 0.003)
-            _expectedProfit = midstep.sub(repay)
-            expectedProfit = {
-                asset: 'ALT',
-                quantity: _expectedProfit
+            // START_POINT === BASE
+            if (convertProfitToBase) {
+                const out = getAmountOut(midstep, BigNumber.from(reserveA0.toFixed()), BigNumber.from(reserveA1.toFixed()), 0.003)
+                _expectedProfit = out.sub(_initialLoan)
+                expectedProfit = {
+                    asset: 'BASE',
+                    quantity: _expectedProfit
+                }
+            } else {
+                const repay = getAmountIn(_initialLoan, BigNumber.from(reserveA0.toFixed()), BigNumber.from(reserveA1.toFixed()), 0.003)
+                _expectedProfit = midstep.sub(repay)
+                expectedProfit = {
+                    asset: 'ALT',
+                    quantity: _expectedProfit
+                }
             }
         }
-    }
+    
+    
+        const output: TradeDetails = {
+            START_POINT,
+            initialLoan: {
+                asset: START_POINT === StartPoint.BASE ? 'BASE' : 'ALT',
+                quantity: _initialLoan
+            },
+            expectedProfit
+        }
+        return output
 
-
-    const output: TradeDetails = {
-        START_POINT,
-        initialLoan: {
-            asset: START_POINT === StartPoint.BASE ? 'BASE' : 'ALT',
-            quantity: _initialLoan
-        },
-        expectedProfit
+    } catch (err) {
+        // Possibly insufficient liquidity to make the trade (Case: reserve = 1 and can't go any lower)
+        if (err instanceof AssertionError) {
+            // console.error(err)
+            // console.log(START_POINT)
+            // console.log(_initialLoan.toString())
+            console.error('Probably insufficient liquidity')
+            const temp: Quantity = {
+                asset: 'NONE',
+                quantity: BigNumber.from(0) 
+            }
+            return {
+                START_POINT: StartPoint.NONE,
+                initialLoan: temp,
+                expectedProfit: temp
+            } 
+        }
+        throw (err)
     }
-    return output
 }
 
 export function tradeDirection (

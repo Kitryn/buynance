@@ -8,7 +8,8 @@
     "test:util": "mocha --require ts-node/register './test/helper/0_test.ts'",
     "build": "tsc -p tsconfig.server.json",
     "postbuild": "npx ts-node ./tools/build.ts",
-    "start:dev": "npx ts-node --project tsconfig.json --files ./src/server/index.ts"
+    "start:dev": "npx ts-node --project tsconfig.json --files ./src/server/index.ts",
+    "tmp": "npx ts-node --project tsconfig.server.json --files ./src/server/tmp.ts"
   },
   "author": "",
   "license": "ISC",

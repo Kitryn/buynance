@@ -1,4 +1,4 @@
-import { ethers } from 'ethers'
+import { ethers, BigNumber } from 'ethers'
 import { FactoryAccount } from './FactoryAccount'
 
 import { PairsModel } from '../models/PairsModel'
@@ -6,6 +6,9 @@ import { Factory, Pair, Token } from '../types'
 import { PairAccount } from './PairAccount'
 import { TokenAccount } from './TokenAccount'
 import { SqliteError } from 'better-sqlite3'
+import { BaseTokens, Factories, BaseFactory } from '../addresses'
+import { findMaxBuy, TradeDetails, StartPoint } from '../../utils/utils'
+import assert from 'assert'
 const dbConn = require('../models/DbConfig')()
 
 import util from 'util'
@@ -144,5 +147,30 @@ export class ChainData {
     async sync(factoryAddress: string) {
         const absentIndexes: number[] = await this.getAbsentPairsInFactory(factoryAddress)
         await this.registerPairFromFactoryIndexArray(factoryAddress, absentIndexes)
+    }
+
+    async getPairLiquidity(pair: Pair[]) {
+        assert(pair.map(elem => elem.factory_address).includes(BaseFactory.contract_address.toLowerCase()))
+        const [_mainPair, _otherPair] = pair[0].factory_address === BaseFactory.contract_address.toLowerCase() ? [pair[0], pair[1]] : [pair[1], pair[0]]
+
+        const mainPairAccount = new PairAccount(_mainPair.contract_address, this.provider)
+        const otherPairAccount = new PairAccount(_otherPair.contract_address, this.provider)
+
+        const [mainPairReserve0, mainPairReserve1] = await mainPairAccount.getReserves()
+        const [otherPairReserve0, otherPairReserve1] = await otherPairAccount.getReserves()
+
+        const baseTokenAddresses = Object.keys(BaseTokens).map(key => {
+            return BaseTokens[key].contract_address.toLowerCase()
+        })
+        const [r_main_base, r_main_alt, r_other_base, r_other_alt] = baseTokenAddresses.includes(_mainPair.token0_address) ? [mainPairReserve0, mainPairReserve1, otherPairReserve0, otherPairReserve1] : [mainPairReserve1, mainPairReserve0, otherPairReserve1, otherPairReserve0]
+
+        const tradeDetails: TradeDetails = findMaxBuy(
+            r_main_base,
+            r_main_alt,
+            r_other_base,
+            r_other_alt,
+            true
+        )
+        return tradeDetails
     }
 }

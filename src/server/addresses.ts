@@ -19,11 +19,11 @@ const COMETHSWAP_FACTORY: Factory = {
 }
 
 // Remember to assert that this data matches that found in our database
-const MATIC: Token = {
+const WMATIC: Token = {
     decimals: 18,
-    name: 'MATIC',
-    symbol: 'MATIC',
-    contract_address: '0x0000000000000000000000000000000000001010'
+    name: 'WMATIC',
+    symbol: 'Wrapped Matic',
+    contract_address: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270'
 }
 
 // PLASMA WETH 0x8cc8538d60901d19692F5ba22684732Bc28F54A3
@@ -55,20 +55,19 @@ const POSDAI: Token = {
     contract_address: '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063'
 }
 
-const POSBUSD: Token = {
-    decimals: 18,
-    name: '(PoS) Binance USD',
-    symbol: 'BUSD',
-    contract_address: '0xdAb529f40E671A1D4bF91361c21bf9f0C9712ab7'
-}
+// const POSBUSD: Token = {
+//     decimals: 18,
+//     name: '(PoS) Binance USD',
+//     symbol: 'BUSD',
+//     contract_address: '0xdAb529f40E671A1D4bF91361c21bf9f0C9712ab7'
+// }
 
 let exportTokens: Record<string, Token> = {
-    MATIC,
+    WMATIC,
     POSWETH,
     POSUSDC,
     POSUSDT,
-    POSDAI,
-    POSBUSD
+    POSDAI
 }
 
 let exportFactories: Record<string, Factory> = {
@@ -76,5 +75,8 @@ let exportFactories: Record<string, Factory> = {
     COMETHSWAP_FACTORY
 }
 
+
+// TODO -- convert all addresses to lower case
 export const BaseTokens = exportTokens
-export const BaseFactories = exportFactories
+export const Factories = exportFactories
+export const BaseFactory = QUICKSWAP_FACTORY

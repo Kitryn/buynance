@@ -16,7 +16,8 @@ export class PairsModel {
             decimals INTEGER NOT NULL,\
             name TEXT NOT NULL,\
             symbol TEXT NOT NULL,\
-            contract_address TEXT UNIQUE NOT NULL)')
+            contract_address TEXT UNIQUE NOT NULL,\
+            is_base INTEGER NOT NULL DEFAULT 0)')
         
         const createPairsTable = this.db.prepare('CREATE TABLE IF NOT EXISTS pairs(\
             pair_index INTEGER NOT NULL,\
@@ -134,5 +135,53 @@ export class PairsModel {
         const query = this.db.prepare('SELECT contract_address, pair_index FROM pairs WHERE factory_address=:address')
         const result = query.all({address: key})
         return result
+    }
+
+    getCommonPairs() {
+        const query = this.db.prepare("SELECT *, token0_address || ';' || token1_address AS _pair FROM pairs \
+            WHERE (\
+                token0_address || ';' ||  token1_address in (\
+                    SELECT token0_address || ';' || token1_address AS slug FROM pairs \
+                    WHERE (\
+                        token0_address in (\
+                            SELECT contract_address FROM tokens WHERE is_base=1\
+                        ) OR \
+                        token1_address in (\
+                            SELECT contract_address FROM tokens WHERE is_base=1\
+                        )\
+                    ) GROUP BY slug HAVING count(slug)>1\
+                )\
+            )\
+            ORDER BY token0_address, token1_address"
+        )
+        const result = query.all()
+        const pairs: Map<string, Pair[]> = new Map()
+
+        for (const _pair of result) {
+            if (pairs.has(_pair._pair) === false) {
+                pairs.set(_pair._pair, [])
+            }
+            pairs.get(_pair._pair)?.push(_pair)
+        }
+
+        return pairs
+    }
+
+    getPairTicker(contractAddress: string) {
+        const query = this.db.prepare("SELECT token0_address, token1_address FROM pairs \
+            WHERE contract_address = :contractAddress\
+        ")
+        const result = query.get({contractAddress: contractAddress.toLowerCase()})
+        
+        const query2 = this.db.prepare("SELECT group_concat(symbol, '/') FROM tokens \
+            WHERE contract_address = :token0 OR \
+            contract_address = :token1 \
+            ORDER BY contract_address")
+        
+        const result2 = query2.pluck().get({
+            token0: result.token0_address,
+            token1: result.token1_address
+        })
+        return result2
     }
 }

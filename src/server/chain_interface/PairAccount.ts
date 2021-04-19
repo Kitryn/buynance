@@ -76,4 +76,9 @@ export class PairAccount extends ContractAccount {
 
         return pair
     }
+
+    async getReserves() {
+        const result = await this.contract.getReserves()
+        return [result._reserve0, result._reserve1]
+    }
 }
