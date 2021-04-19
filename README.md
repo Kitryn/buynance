@@ -8,7 +8,12 @@ git clone then
 npm install
 ```
 
-### Server
+## Testing
+
+```npx hardhat test```
+
+
+## Server
 
 Development: Create a ```.env``` file in project root. App expects the following environment variables:
 
@@ -19,6 +24,7 @@ DBNAME
 ```
 
 Run with ```npm run start:dev```
+
 
 ## Project structure
 
