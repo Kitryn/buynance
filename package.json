@@ -5,10 +5,10 @@
   "main": "./server/dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "test:util": "mocha --require ts-node/register './test/helper/0_test.ts'",    
-    "build": "tsc",
-    "postbuild": "npx ts-node ./server/tools/build.ts",
-    "start:dev": "npx ts-node --project tsconfig.json --files ./server/src/index.ts"
+    "test:util": "mocha --require ts-node/register './test/helper/0_test.ts'",
+    "build": "tsc -p tsconfig.server.json",
+    "postbuild": "npx ts-node ./tools/build.ts",
+    "start:dev": "npx ts-node --project tsconfig.json --files ./src/server/index.ts"
   },
   "author": "",
   "license": "ISC",

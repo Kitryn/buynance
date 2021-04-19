@@ -103,7 +103,7 @@ typings/
 .tern-port
 
 # Buynance
-server/dist/*
+/dist/*
 data.db
 *.db
 build/contracts/*
