@@ -14,9 +14,10 @@ const QUICKSWAP_FACTORY: Factory = {
 const COMETHSWAP_FACTORY: Factory = {
     name: 'Comethswap',
     contract_address: '0x800b052609c355cA8103E06F022aA30647eAd60a',
-    router_address: '0x7dd75252cc324FD181fC4e79335b7d78A11a8019',
+    router_address: '0x93bcDc45f7e62f89a8e901DC4A0E2c6C427D9F25', 
     fee: 0.003
 }
+// '0x7dd75252cc324FD181fC4e79335b7d78A11a8019',
 
 // Remember to assert that this data matches that found in our database
 const WMATIC: Token = {
