@@ -23,12 +23,17 @@ function differenceSet(a: Set<any>, b: Set<any>) {
 export class ChainData {
     _factories: Map<string, FactoryAccount>
     //private provider: ethers.providers.JsonRpcProvider;
-    provider: ethers.providers.WebSocketProvider
+    provider: ethers.providers.WebSocketProvider | ethers.providers.JsonRpcProvider
+    is_WSS: boolean = false
     db: PairsModel
 
-    constructor(rpcUrl: string) {
-        // this.provider = new ethers.providers.JsonRpcProvider(rpcUrl)
-        this.provider = new ethers.providers.WebSocketProvider(rpcUrl)
+    constructor(rpcUrl: string, is_WSS: boolean = false) {
+        if (is_WSS) {
+            this.provider = new ethers.providers.WebSocketProvider(rpcUrl)
+            this.is_WSS = true
+        } else {
+            this.provider = new ethers.providers.JsonRpcProvider(rpcUrl)
+        }
         this._factories = new Map<string, FactoryAccount>()
         this.db = new PairsModel(dbConn)
     }
