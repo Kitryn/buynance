@@ -5,8 +5,8 @@ export enum ContractType {
 }
 
 export enum ABI {
-    factory = require('./ABI/factory.json'),
-    pair = require('./ABI/pair.json'),
+    factory = require('./ABI/UniswapV2Factory.json'),
+    pair = require('./ABI/UniswapV2Pair.json'),
     bep20 = require('./ABI/bep20.json')
 }
 

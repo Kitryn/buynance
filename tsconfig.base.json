@@ -10,9 +10,6 @@
         "forceConsistentCasingInFileNames": true,
         "skipLibCheck": true,
         "outDir": "./dist/",
-        "rootDir": ".",
-        "typeRoots": [
-            "./types"
-        ]
+        "rootDir": "."
     }
 }

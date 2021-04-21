@@ -8,7 +8,7 @@ import { ChainData } from './chain_interface/ChainData'
 import { ethers } from 'ethers'
 import { Factories } from './addresses'
 // import abiDecoder from 'abi-decoder'
-const routerABI = require('./ABI/uniswapv2router02.json')
+const routerABI = require('./ABI/UniswapV2Router02.json')
 
 const routerAddresses = Object.keys(Factories).map(elem => Factories[elem].router_address.toLowerCase())
 const routerNames: Record<string, string | undefined> = {}
