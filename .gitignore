@@ -103,10 +103,9 @@ typings/
 .tern-port
 
 # Buynance
-/dist/*
+dist/
 data.db
 *.db
-build/contracts/*
-artifacts/*
-cache/*
+artifacts/
+cache/
 .secret
